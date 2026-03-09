@@ -23,6 +23,16 @@ free-pack repo so free-pack submission stays reviewable, automatable, and safe.
 5. Address CI failures and maintainer review comments.
 6. Wait for maintainer merge before expecting marketplace publication.
 
+## Agent-Assisted Prep
+
+- Contributors may ask an AI agent to prepare a submission before opening the PR
+- Agents should follow `AGENTS.md` and use the `free-pack-submission-prep`
+  skill for file inspection, metadata inference, normalization, and local
+  validation
+- Flexible local input is allowed during preparation, but the final committed
+  result still must be one canonical pack directory with valid `manifest.json`
+  and `SKILL.md`
+
 ## Allowed PR Scope
 
 Default allowed scope for a submission PR:

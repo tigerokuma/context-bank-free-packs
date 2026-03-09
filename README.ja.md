@@ -7,6 +7,7 @@
 ## 概要
 
 - contributor はこの repo に PR を出して free pack を投稿できます。
+- contributor は manual に pack を整えてもよいし、AI agent に submission 用の正規化を依頼しても構いません。
 - GitHub Actions は marketplace の本番 secret を使わずに untrusted PR を validation します。
 - `merge` が approval event です。
 - `merge` 後、GitHub Actions が pack-only ZIP を public な `pack-artifacts` release に publish し、`catalogs/pack-artifacts.json` を更新し、private app repo の sync workflow を自動実行します。
@@ -54,6 +55,15 @@ flowchart LR
 6. 承認されれば maintainer が merge します。
 7. merge 後、`publish-pack-artifacts.yml` が pack ZIP asset を publish または再利用し、`catalogs/pack-artifacts.json` を更新したうえで、成功時に downstream の `tigerokuma/context-bank` sync workflow を自動 dispatch します。
 
+## Agent-First 投稿パス
+
+manual で最終 directory layout を作らなくても、AI agent に submission 用 pack を準備させることができます。
+
+- `AGENTS.md` がこの repo における agent behavior の entry point です。
+- contributor が投稿方法、`manifest.json` の生成、`SKILL.md` の修正、任意の local files の pack 化を尋ねたら、agent は `free-pack-submission-prep` skill を使います。
+- この skill は、まず local files を inspection し、安全な範囲で metadata を推論して、`packs/<creator>/<slug>/` の canonical structure に変換します。
+- ただし最終的な output は従来どおり `scripts/validate-free-pack.py` と通常の PR review を通過する必要があります。
+
 ## 既存 Pack の更新方法
 
 以前に approved された pack を更新したい場合も、基本は同じ PR フローです。
@@ -75,6 +85,7 @@ flowchart LR
 
 ```text
 .
+├── AGENTS.md
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
@@ -85,6 +96,11 @@ flowchart LR
 │   └── pack-artifacts.json
 ├── docs/
 │   └── context-bank/
+├── skills/
+│   └── free-pack-submission-prep/
+│       ├── SKILL.md
+│       └── scripts/
+│           └── prepare_free_pack_submission.py
 ├── packs/
 │   └── <creator>/
 │       └── <slug>/
@@ -108,6 +124,7 @@ flowchart LR
 - free pack のみ対象です。
 - executable、symlink、hidden file、危険な prompt / shell content は不可です。
 - `manifest.json` と `SKILL.md` は free pricing と category を一致させてください。
+- agent-assisted prep は可能ですが、commit する最終形は canonical かつ validator-clean である必要があります。
 
 推奨ローカル validation:
 
@@ -123,6 +140,14 @@ python3 scripts/validate-free-pack.py \
   --changed-files-file /tmp/changed-files.txt
 ```
 
+柔軟な local inputs を canonical pack に変換する helper:
+
+```bash
+python3 skills/free-pack-submission-prep/scripts/prepare_free_pack_submission.py \
+  --source-dir /path/to/local-files \
+  --target-pack-dir packs/<creator>/<slug>
+```
+
 ## Maintainer Guide
 
 1. PR が 1 つの pack directory だけを変更しているか確認します。
@@ -136,6 +161,12 @@ python3 scripts/validate-free-pack.py \
 自分で管理する source repo から、自動で submission PR を作ることもできます。これは `.github/workflows/submit-from-trusted-source-repo.yml` を使う maintainer 向けの上級フローです。
 
 ただし、これは primary contributor path ではありません。通常の contributor は `fork -> pack 更新 -> PR` のフローを使ってください。
+
+## 運用メモ
+
+- 2026-03-09 に作成した PAT-backed GitHub secrets は 2026-06-07 に expire する想定です。
+- expiry 前に rotate してください。
+- rotate 後は end-to-end automation test を実行してください。
 
 ## 現在の MVP 境界
 

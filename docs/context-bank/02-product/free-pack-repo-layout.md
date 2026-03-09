@@ -11,11 +11,17 @@ This repo is the MVP source of truth for approved free packs after merge.
 
 ```text
 <free-pack-repo>/
+├── AGENTS.md
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
 │       ├── validate-free-pack.yml
 │       └── publish-pack-artifacts.yml
+├── skills/
+│   └── free-pack-submission-prep/
+│       ├── SKILL.md
+│       └── scripts/
+│           └── prepare_free_pack_submission.py
 ├── packs/
 │   └── <creator-handle>/
 │       └── <pack-slug>/
@@ -55,6 +61,14 @@ This repo is the MVP source of truth for approved free packs after merge.
   app repo sync workflow after a successful publish
 - `submit-from-trusted-source-repo.yml` can be called from a trusted source
   repo to open or update a central-repo submission PR
+
+### `AGENTS.md` and `skills/`
+
+- `AGENTS.md` is the short routing layer for repo-aware agents
+- agents that need to prepare a submission should use the
+  `free-pack-submission-prep` skill
+- the skill may accept flexible local input, but the committed output must still
+  end in canonical `packs/<creator-handle>/<pack-slug>/` form
 
 ## Per-Pack Directory Contract
 
@@ -208,5 +222,7 @@ After a maintainer merges a free-pack pull request:
 - Paid metadata must not appear in public free-pack directories
 - Large binary or executable payloads are not allowed
 - Hidden files such as `.DS_Store` or secret-bearing dotfiles are not allowed
+- Agent-assisted prep may transform arbitrary safe local files before commit,
+  but the final submission contract does not change
 - One pull request should target one pack directory unless a maintainer has
   explicitly requested a multi-pack operational change

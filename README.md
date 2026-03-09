@@ -7,6 +7,7 @@ This repo is the central public repository for approved free packs in Context Ba
 ## Overview
 
 - Contributors submit free packs by opening pull requests against this repo.
+- Contributors can either prepare the pack manually or ask an AI agent to do the normalization work first.
 - GitHub Actions validate untrusted PRs without marketplace production secrets.
 - Merge is the approval event.
 - After merge, GitHub Actions publish a pack-only ZIP to the public `pack-artifacts` release, refresh `catalogs/pack-artifacts.json`, and automatically trigger the private app repo sync workflow.
@@ -54,6 +55,15 @@ flowchart LR
 6. If approved, the maintainer merges the PR.
 7. After merge, the `publish-pack-artifacts.yml` workflow publishes or reuses the pack ZIP asset, refreshes `catalogs/pack-artifacts.json`, and automatically dispatches the downstream `tigerokuma/context-bank` sync workflow after successful publish/catalog completion.
 
+## Agent-First Submission Path
+
+Contributors can also ask an AI agent to prepare a pack for submission instead of hand-authoring the final directory layout.
+
+- `AGENTS.md` is the repo entry point for agent behavior.
+- Agents should use the `free-pack-submission-prep` skill when a contributor asks how to submit, how to generate `manifest.json`, how to fix `SKILL.md`, or how to turn arbitrary local files into a valid pack.
+- The skill is allowed to inspect arbitrary local files first, infer metadata, and transform safe inputs into the canonical `packs/<creator>/<slug>/` structure.
+- The final output still has to pass `scripts/validate-free-pack.py` and the normal PR review rules.
+
 ## Updating An Existing Pack
 
 If you already have an approved pack and want to update it, use the same PR flow.
@@ -75,6 +85,7 @@ Important rules:
 
 ```text
 .
+├── AGENTS.md
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
@@ -85,6 +96,11 @@ Important rules:
 │   └── pack-artifacts.json
 ├── docs/
 │   └── context-bank/
+├── skills/
+│   └── free-pack-submission-prep/
+│       ├── SKILL.md
+│       └── scripts/
+│           └── prepare_free_pack_submission.py
 ├── packs/
 │   └── <creator>/
 │       └── <slug>/
@@ -108,6 +124,7 @@ Important rules:
 - Free packs only.
 - No executables, symlinks, hidden files, or dangerous prompt/shell content.
 - `manifest.json` and `SKILL.md` must agree on free pricing and category.
+- Agent-assisted prep is allowed, but the committed result still must be canonical and validator-clean.
 
 Recommended local validation:
 
@@ -123,6 +140,14 @@ python3 scripts/validate-free-pack.py \
   --changed-files-file /tmp/changed-files.txt
 ```
 
+Agent helper for flexible local inputs:
+
+```bash
+python3 skills/free-pack-submission-prep/scripts/prepare_free_pack_submission.py \
+  --source-dir /path/to/local-files \
+  --target-pack-dir packs/<creator>/<slug>
+```
+
 ## Maintainer Guide
 
 1. Confirm the PR changes exactly one pack directory.
@@ -136,6 +161,12 @@ python3 scripts/validate-free-pack.py \
 Owner-managed source repos can also open or update submission PRs automatically by using the reusable workflow in `.github/workflows/submit-from-trusted-source-repo.yml`.
 
 This is an advanced maintainer workflow, not the primary contributor path. Standard contributors should use the normal `fork -> update pack -> PR` flow above.
+
+## Operations Note
+
+- PAT-backed GitHub secrets created on 2026-03-09 are expected to expire on 2026-06-07.
+- Rotate them before expiry.
+- After rotation, run an end-to-end automation test.
 
 ## Current MVP Boundaries
 

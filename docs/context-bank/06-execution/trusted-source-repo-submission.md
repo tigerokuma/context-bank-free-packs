@@ -65,6 +65,13 @@ Required minimum repository permissions for the central repo credential:
 - easy to create for one owner-managed repo pair
 - should be restricted to the central repo only
 
+Operational reminder:
+
+- PAT-backed GitHub secrets created on 2026-03-09 are expected to expire on
+  2026-06-07
+- rotate them before expiry
+- after rotation, run an end-to-end automation test
+
 ### GitHub App
 
 - better long-term isolation and rotation story
