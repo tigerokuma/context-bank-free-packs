@@ -1,0 +1,40 @@
+{
+  "market": "TSE Prime",
+  "currency": "JPY",
+  "updatedAt": "2026-03-08",
+  "stocks": [
+    {
+      "ticker": "7203",
+      "company": "Toyota Motor",
+      "sector": "Automobiles",
+      "close": 3125,
+      "changePct5d": 1.8,
+      "changePct20d": 4.2,
+      "ma20": 3040,
+      "ma50": 2965,
+      "volumeTrend": "above-average"
+    },
+    {
+      "ticker": "6758",
+      "company": "Sony Group",
+      "sector": "Consumer Electronics",
+      "close": 14890,
+      "changePct5d": -0.6,
+      "changePct20d": 3.1,
+      "ma20": 14940,
+      "ma50": 14510,
+      "volumeTrend": "normal"
+    },
+    {
+      "ticker": "9984",
+      "company": "SoftBank Group",
+      "sector": "Telecom and Investment",
+      "close": 8650,
+      "changePct5d": 2.4,
+      "changePct20d": 5.6,
+      "ma20": 8420,
+      "ma50": 8210,
+      "volumeTrend": "above-average"
+    }
+  ]
+}
