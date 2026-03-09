@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "slug": "japan-stock-trends-sample",
+    "creatorHandle": "tigerokuma",
+    "title": "japan-stock-trends-sample",
+    "summary": "Sample context pack for reviewing Japanese stock trend notes and summary workflows.",
+    "category": "investing",
+    "tags": [
+      "japanese-stocks",
+      "market-notes",
+      "trend-review"
+    ],
+    "priceType": "free"
+  },
+  "source": {
+    "type": "internal_repo",
+    "repoUrl": "https://github.com/tigerokuma/context-bank-free-packs",
+    "path": "packs/tigerokuma/japan-stock-trends-sample"
+  },
+  "support": {
+    "homepage": "https://github.com/tigerokuma/context-bank-free-packs/tree/main/packs/tigerokuma/japan-stock-trends-sample",
+    "issues": "https://github.com/tigerokuma/context-bank-free-packs/issues"
+  }
+}
