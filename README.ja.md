@@ -1,13 +1,12 @@
 # Context Bank Free Packs
 
-[English](README.en.md) | [日本語](README.ja.md)
+[Read in English](README.md)
 
 この repo は、Context Bank の approved free pack を扱う中央の public repository です。
 
 ## 概要
 
 - contributor はこの repo に PR を出して free pack を投稿できます。
-- 自分で管理する trusted source repo から、この repo に自動で PR を作ることもできます。
 - GitHub Actions は marketplace の本番 secret を使わずに untrusted PR を validation します。
 - `merge` が approval event です。
 - `merge` 後、private marketplace app 側で `pnpm free-pack:sync` を実行すると、approved pack を取り込めます。
@@ -25,51 +24,52 @@ paid pack はこの repo の対象外です。MVP では `source.type = internal
 
 ```mermaid
 flowchart LR
-    A["作成者 / Contributor"] --> B["パスA: free-packs repo を fork"]
-    A --> C["パスB: trusted source repo workflow"]
+    A["作成者 / Contributor"] --> B["free-packs repo を fork"]
+    B --> C["packs/{creator}/{slug} に 1 pack を追加または更新"]
+    C --> D["central public repo に PR を作成"]
 
-    B --> D["packs/{creator}/{slug} に 1 pack を追加または更新"]
-    D --> E["central public repo に PR を作成"]
+    D --> E["central repo の pull_request CI"]
+    E --> E1["validate-free-pack.yml"]
+    E1 --> E2["manifest.json / SKILL.md の整合性チェック"]
+    E1 --> E3["path / free pricing / source.type のチェック"]
+    E1 --> E4["安全性チェック: executable, symlink, hidden file, blocked pattern"]
 
-    C --> F["source repo Action が pack をコピーして PR を作成または更新"]
-    F --> E
+    E --> F{"Maintainer review"}
+    F -->|"approve + merge"| G["main に merge された commit = approval event"]
+    F -->|"changes requested"| D
 
-    E --> G["central repo の pull_request CI"]
-    G --> G1["validate-free-pack.yml"]
-    G1 --> G2["manifest.json / SKILL.md の整合性チェック"]
-    G1 --> G3["path / free pricing / source.type のチェック"]
-    G1 --> G4["安全性チェック: executable, symlink, hidden file, blocked pattern"]
-
-    G --> H{"Maintainer review"}
-    H -->|"approve + merge"| I["main に merge された commit = approval event"]
-    H -->|"changes requested"| E
-
-    I --> J["sync-marketplace.yml が normalized artifact を生成"]
-    I --> K["private marketplace repo で pnpm free-pack:sync を手動実行"]
-    K --> L["marketplace 用 normalized snapshot を保存"]
-    L --> M["catalog / detail page に synced free pack を表示"]
+    G --> H["sync-marketplace.yml が normalized artifact を生成"]
+    G --> I["private marketplace repo で pnpm free-pack:sync を手動実行"]
+    I --> J["marketplace 用 normalized snapshot を保存"]
+    J --> K["catalog / detail page に synced free pack を表示"]
 ```
 
-## 投稿パス
-
-### パス1: 通常の contributor PR
+## 投稿フロー
 
 1. この repository を fork します。
 2. `packs/<creator>/<slug>/` に対して、ちょうど 1 つの pack directory を追加または更新します。
 3. `manifest.json` と `SKILL.md` を含めます。
 4. Pull Request を作成します。
 5. central repo 側の CI と maintainer review を待ちます。
+6. 承認されれば maintainer が merge します。
+7. merge 後、private app repo 側で `pnpm free-pack:sync` を実行すると marketplace に取り込めます。
 
-このパスでは `PAT` は不要です。
+## 既存 Pack の更新方法
 
-### パス2: Trusted source repo automation
+以前に approved された pack を更新したい場合も、基本は同じ PR フローです。
 
-1. 別 repository で pack 本体を管理します。
-2. source repo 側の workflow を実行します。
-3. workflow がこの repo に対する PR を新規作成または更新します。
-4. その後の CI と review は通常 PR と同じです。
+1. 同じ pack path を使います: `packs/<creator>/<slug>/`
+2. その directory 内の pack ファイルを更新します。
+3. metadata が変わるなら `manifest.json` と `SKILL.md` も一緒に更新します。
+4. PR を作成します。
+5. CI と maintainer review を待ちます。
+6. merge 後、次回の `pnpm free-pack:sync` で marketplace 側の approved version が更新されます。
 
-このパスだけ、GitHub Actions が別 repository に書き込むため source repo 側の secret が必要です。
+重要ルール:
+
+- 通常の更新では `creator` と `slug` の path を維持してください。
+- 通常の update PR で pack directory を勝手に rename / move してはいけません。
+- rename / move は maintainer 承認前提の migration PR が必要です。
 
 ## ディレクトリ構成
 
@@ -131,6 +131,12 @@ python3 scripts/validate-free-pack.py \
 3. `pull_request` validation workflow が通っていることを確認します。
 4. 問題なければ merge します。squash merge でも構いません。
 5. marketplace へ反映したいタイミングで、private marketplace repo 側で `pnpm free-pack:sync` を実行します。
+
+## Advanced Maintainer Workflow
+
+自分で管理する source repo から、自動で submission PR を作ることもできます。これは `.github/workflows/submit-from-trusted-source-repo.yml` を使う maintainer 向けの上級フローです。
+
+ただし、これは primary contributor path ではありません。通常の contributor は `fork -> pack 更新 -> PR` のフローを使ってください。
 
 ## 現在の MVP 境界
 
