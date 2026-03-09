@@ -114,14 +114,14 @@ jobs:
             --creator-handle "${{ inputs.creator_handle }}" \
             "${OPTIONAL_ARGS[@]}" \
             --github-token "${CENTRAL_REPO_TOKEN}" \
-            --output-json central-repo/.submission-result.json
+            --output-json central-repo/submission-result.json
 
           python3 - <<'PY'
           import json
           import os
           from pathlib import Path
 
-          result = json.loads(Path("central-repo/.submission-result.json").read_text())
+          result = json.loads(Path("central-repo/submission-result.json").read_text())
           output_path = Path(os.environ["GITHUB_OUTPUT"])
           with output_path.open("a", encoding="utf-8") as handle:
               handle.write(f"status={result.get('status', '')}\n")
@@ -137,7 +137,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trusted-source-submission-${{ github.run_id }}
-          path: central-repo/.submission-result.json
+          path: central-repo/submission-result.json
           if-no-files-found: error
 
       - name: Write summary
@@ -148,7 +148,7 @@ jobs:
           import os
           from pathlib import Path
 
-          result = json.loads(Path("central-repo/.submission-result.json").read_text())
+          result = json.loads(Path("central-repo/submission-result.json").read_text())
           pull_request = result.get("pullRequest") or {}
           summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
           lines = [
