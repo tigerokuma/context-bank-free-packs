@@ -9,7 +9,7 @@ This repo is the central public repository for approved free packs in Context Ba
 - Contributors submit free packs by opening pull requests against this repo.
 - GitHub Actions validate untrusted PRs without marketplace production secrets.
 - Merge is the approval event.
-- After merge, the private marketplace app can ingest the approved pack by running `pnpm free-pack:sync`.
+- After merge, GitHub Actions publish a pack-only ZIP to the public `pack-artifacts` release and refresh `catalogs/pack-artifacts.json`.
 
 Paid packs are out of scope here. MVP supports only free packs with `source.type = internal_repo`.
 
@@ -38,10 +38,10 @@ flowchart LR
     F -->|"approve + merge"| G["Merged commit on main = approval event"]
     F -->|"request changes"| D
 
-    G --> H["sync-marketplace.yml builds normalized artifact"]
-    G --> I["Private marketplace repo: run pnpm free-pack:sync manually"]
-    I --> J["Marketplace stores normalized snapshot"]
-    J --> K["Catalog page / detail page render synced free pack"]
+    G --> H["publish-pack-artifacts.yml publishes pack-only ZIPs"]
+    H --> I["GitHub Release: pack-artifacts"]
+    H --> J["catalogs/pack-artifacts.json refreshed"]
+    J --> K["Downstream marketplace later consumes artifactUrl"]
 ```
 
 ## Submission Flow
@@ -52,7 +52,7 @@ flowchart LR
 4. Open a pull request.
 5. Wait for central repo CI and maintainer review.
 6. If approved, the maintainer merges the PR.
-7. After merge, the marketplace can ingest the approved pack through `pnpm free-pack:sync` in the private app repo.
+7. After merge, the `publish-pack-artifacts.yml` workflow publishes or reuses the pack ZIP asset and refreshes `catalogs/pack-artifacts.json`.
 
 ## Updating An Existing Pack
 
@@ -63,7 +63,7 @@ If you already have an approved pack and want to update it, use the same PR flow
 3. Update `manifest.json` and `SKILL.md` together if metadata changed.
 4. Open a PR.
 5. Wait for CI and maintainer review.
-6. After merge, the new approved version becomes available to the marketplace on the next `pnpm free-pack:sync`.
+6. After merge, the new approved version is published as a new pack-only ZIP if the pack directory changed.
 
 Important rules:
 
@@ -79,11 +79,10 @@ Important rules:
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
 │       ├── submit-from-trusted-source-repo.yml
-│       ├── sync-marketplace.yml
+│       ├── publish-pack-artifacts.yml
 │       └── validate-free-pack.yml
 ├── catalogs/
-│   ├── index.json
-│   └── latest.json
+│   └── pack-artifacts.json
 ├── docs/
 │   └── context-bank/
 ├── packs/
@@ -97,7 +96,7 @@ Important rules:
 │           ├── prompts/
 │           └── assets/
 └── scripts/
-    ├── build-sync-payload.py
+    ├── build-pack-artifacts.py
     ├── create-submission-pr.py
     ├── free_pack_common.py
     └── validate-free-pack.py
@@ -130,7 +129,7 @@ python3 scripts/validate-free-pack.py \
 2. Review `manifest.json`, `SKILL.md`, and the changed file tree.
 3. Confirm the `pull_request` validation workflow passed.
 4. Merge if approved. Squash merge is acceptable.
-5. After merge, run `pnpm free-pack:sync` in the private marketplace repo when you want marketplace visibility to update.
+5. After merge, confirm `publish-pack-artifacts.yml` succeeded and refreshed the release assets plus `catalogs/pack-artifacts.json`.
 
 ## Advanced Maintainer Workflow
 
@@ -144,4 +143,4 @@ This is an advanced maintainer workflow, not the primary contributor path. Stand
 - No marketplace production secrets in public PR validation.
 - No direct write from this public repo into the private app.
 - No `external_repo` registration flow yet.
-- Post-merge marketplace reflection is still manual sync.
+- Downstream marketplace integration to consume `catalogs/pack-artifacts.json` is still separate work.

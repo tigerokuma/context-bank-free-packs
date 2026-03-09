@@ -71,7 +71,7 @@ CI should fail the PR if any of the following are true:
 - Maintainers must verify the manifest, `SKILL.md`, and changed file tree
 - Rejection feedback should identify the failing file or rule and the minimum
   fix needed
-- Merge means the changed pack version is approved for sync
+- Merge means the changed pack version is approved for pack-artifact publishing
 - Maintainers may use squash merge; the resulting default-branch commit is the
   approved source ref
 
@@ -80,17 +80,17 @@ CI should fail the PR if any of the following are true:
 - Updates to an existing free pack must use the same directory path
 - A pack update PR should not silently rename the creator handle or slug
 - Renames or moves require an explicit maintainer-approved migration PR
-- The previous approved marketplace version remains visible until post-merge
-  sync succeeds
+- The previous committed artifact catalog remains visible until post-merge
+  publishing succeeds
 
-## Sync Rules
+## Publishing Rules
 
-- Post-merge sync reads only merged default-branch state
-- Marketplace publication must use the merged commit SHA, not the contributor
-  branch SHA
-- If sync fails, maintainers should treat the PR as merged but not yet
-  published, and rerun or repair sync without asking contributors to reopen the
-  submission
+- Post-merge publishing reads only merged default-branch state
+- Pack artifact publication must use the latest merged commit SHA that touched
+  the pack directory, not the contributor branch SHA
+- If publishing fails, maintainers should treat the PR as merged but not yet
+  reflected in `catalogs/pack-artifacts.json`, and rerun or repair publishing
+  without asking contributors to reopen the submission
 
 ## Future Compatibility Rules
 

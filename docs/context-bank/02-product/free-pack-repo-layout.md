@@ -15,7 +15,7 @@ This repo is the MVP source of truth for approved free packs after merge.
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
 │       ├── validate-free-pack.yml
-│       └── sync-marketplace.yml
+│       └── publish-pack-artifacts.yml
 ├── packs/
 │   └── <creator-handle>/
 │       └── <pack-slug>/
@@ -27,8 +27,7 @@ This repo is the MVP source of truth for approved free packs after merge.
 │           ├── prompts/
 │           └── assets/
 ├── catalogs/
-│   ├── index.json
-│   └── latest.json
+│   └── pack-artifacts.json
 └── README.md
 ```
 
@@ -44,15 +43,15 @@ This repo is the MVP source of truth for approved free packs after merge.
 
 ### `catalogs/`
 
-- Holds generated or maintainer-controlled aggregate manifests used for sync
+- Holds generated aggregate artifact metadata for downstream consumers
 - Should not be hand-edited by contributors unless the PR explicitly exists to
   repair generated catalog data
 
 ### `.github/workflows/`
 
 - `validate-free-pack.yml` validates changed pack directories in pull requests
-- `sync-marketplace.yml` runs after merge to publish normalized metadata to the
-  private marketplace system
+- `publish-pack-artifacts.yml` runs after merge to publish pack-only ZIP assets
+  plus the generated artifact catalog
 - `submit-from-trusted-source-repo.yml` can be called from a trusted source
   repo to open or update a central-repo submission PR
 
@@ -79,7 +78,7 @@ Optional files:
 
 The internal contents of `SKILL.md` and optional pack files follow the generic
 pack format rules from `pack-format.md`. This doc defines the additional repo
-layout and marketplace sync contract for the public free-pack repository.
+layout and pack artifact publishing contract for the public free-pack repository.
 
 ## `manifest.json` Contract
 
@@ -88,7 +87,7 @@ layout and marketplace sync contract for the public free-pack repository.
 `manifest.json` is the machine-readable marketplace contract for one approved
 free pack directory.
 
-It exists so CI and the marketplace sync can validate pack identity and listing
+It exists so CI and the pack artifact publisher can validate pack identity and listing
 metadata without parsing only markdown.
 
 ### Canonical Shape
@@ -182,16 +181,22 @@ In MVP:
   approved pack
 - `path` is the pack directory path inside the public repo
 
-## Sync Contract
+## Artifact Publishing Contract
 
 After a maintainer merges a free-pack pull request:
 
-1. The sync workflow identifies changed `packs/<creator>/<slug>/` directories.
-2. The workflow reads `manifest.json`, `SKILL.md`, and the merged commit SHA.
-3. The private marketplace stores a normalized snapshot for listing, preview,
-   audit, and install metadata.
-4. If sync fails, the merge remains in GitHub but the listing must stay
-   unpublished until sync succeeds.
+1. The publish workflow scans all current `packs/<creator>/<slug>/`
+   directories.
+2. For each pack, it resolves the latest commit that touched that directory as
+   the pack `sourceRef`.
+3. The workflow builds a ZIP whose extracted root is
+   `<creator-handle>-<pack-slug>/` and whose contents include only that pack.
+4. The workflow uploads missing ZIPs to the public `pack-artifacts` GitHub
+   Release and leaves historical assets untouched.
+5. The workflow rewrites `catalogs/pack-artifacts.json` to point each current
+   pack at its latest pack-only ZIP.
+6. If publishing fails, the merge remains in GitHub and the previously
+   committed catalog stays intact.
 
 ## Contributor Constraints
 

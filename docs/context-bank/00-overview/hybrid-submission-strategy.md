@@ -62,8 +62,8 @@ preserving a simpler path for paid submissions and non-technical creators.
    category or pricing policy.
 5. Approval is represented by merging the PR into the public repo default
    branch.
-6. The marketplace syncs approved metadata from the merged commit for catalog
-   display.
+6. Post-merge automation publishes a pack-only ZIP plus machine-readable
+   artifact catalog from the merged commit.
 
 ### Paid Packs And Web Fallback Packs
 
@@ -88,10 +88,9 @@ preserving a simpler path for paid submissions and non-technical creators.
 
 - GitHub becomes the canonical source repo for approved free packs in MVP, but
   not the system of record for payments, entitlements, or payout history.
-- Approved free listings should store a normalized snapshot of repository
-  metadata, the merged commit SHA, and source coordinates for the pack
-  directory.
-- Public GitHub hosting may back free-pack downloads, but the marketplace still
+- Approved free listings should store source coordinates for the pack
+  directory plus artifact metadata keyed by the merged commit SHA.
+- Public GitHub Releases back free-pack downloads, while the marketplace still
   needs local records for search, moderation, analytics, and auditability.
 - Paid listings continue to rely on Context Bank-controlled storage and
   authenticated delivery surfaces.

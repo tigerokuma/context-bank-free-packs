@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-09T22:16:43Z",
+  "releaseTag": "pack-artifacts",
+  "packs": [
+    {
+      "creatorHandle": "context-bank",
+      "slug": "sample-free-pack",
+      "sourcePath": "packs/context-bank/sample-free-pack",
+      "sourceRef": "968f2cf98ad79a460f28a40ecc1e04b35ce56589",
+      "assetName": "context-bank--sample-free-pack--968f2cf.zip",
+      "artifactUrl": "https://github.com/tigerokuma/context-bank-free-packs/releases/download/pack-artifacts/context-bank--sample-free-pack--968f2cf.zip",
+      "sha256": "81429e7847a0459d4082691bfe9947e5bbb193e5e48a4842c8bef0513d8b0747",
+      "sizeBytes": 2332
+    },
+    {
+      "creatorHandle": "tigerokuma",
+      "slug": "japan-stock-trends-sample",
+      "sourcePath": "packs/tigerokuma/japan-stock-trends-sample",
+      "sourceRef": "aafb0efd86890562776867e4826237f01e24aa69",
+      "assetName": "tigerokuma--japan-stock-trends-sample--aafb0ef.zip",
+      "artifactUrl": "https://github.com/tigerokuma/context-bank-free-packs/releases/download/pack-artifacts/tigerokuma--japan-stock-trends-sample--aafb0ef.zip",
+      "sha256": "9f48d1a66427b8693194f022f3b98ab420b70e0d292c46ec621e6df92b0c6ce8",
+      "sizeBytes": 5608
+    }
+  ]
+}

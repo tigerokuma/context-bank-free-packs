@@ -33,9 +33,8 @@ Issue-based intake remains a future fallback option, not the primary path here.
    source repo URL, source ref, and source pack path.
 5. Central repo CI runs `validate-free-pack.yml` on the untrusted PR.
 6. A maintainer reviews the PR diff and CI result, then merges if approved.
-7. After merge, the existing private marketplace operator flow runs
-   `pnpm free-pack:sync` in the private app repo to ingest the approved merged
-   state.
+7. After merge, the central repo publish workflow generates or reuses the
+   pack-only ZIP asset and refreshes `catalogs/pack-artifacts.json`.
 
 ## Security Model
 
@@ -110,11 +109,12 @@ Maintainers should see:
 
 Merge remains the approval event.
 
-Publication into the marketplace remains a private-app operator step in MVP:
+Post-merge publishing is handled inside the central repo:
 
 1. merge the central repo PR
-2. run `pnpm free-pack:sync` in the private marketplace repo
-3. confirm the synced listing appears in catalog and detail surfaces
+2. confirm `publish-pack-artifacts.yml` completed successfully
+3. confirm the `pack-artifacts` release asset and `catalogs/pack-artifacts.json`
+   entry were updated as expected
 
-If manual sync fails, the merged PR stays approved in GitHub, but the previous
-approved marketplace snapshot must remain intact until sync succeeds.
+If publishing fails, the merged PR stays approved in GitHub, but the previous
+committed artifact catalog must remain intact until the workflow succeeds.
