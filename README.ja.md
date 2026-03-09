@@ -9,7 +9,7 @@
 - contributor はこの repo に PR を出して free pack を投稿できます。
 - GitHub Actions は marketplace の本番 secret を使わずに untrusted PR を validation します。
 - `merge` が approval event です。
-- `merge` 後、GitHub Actions が pack-only ZIP を public な `pack-artifacts` release に publish し、`catalogs/pack-artifacts.json` を更新します。
+- `merge` 後、GitHub Actions が pack-only ZIP を public な `pack-artifacts` release に publish し、`catalogs/pack-artifacts.json` を更新し、private app repo の sync workflow を自動実行します。
 
 paid pack はこの repo の対象外です。MVP では `source.type = internal_repo` の free pack のみ対応します。
 
@@ -41,7 +41,7 @@ flowchart LR
     G --> H["publish-pack-artifacts.yml が pack-only ZIP を publish"]
     H --> I["GitHub Release: pack-artifacts"]
     H --> J["catalogs/pack-artifacts.json を更新"]
-    J --> K["downstream marketplace は将来 artifactUrl を別途 consume"]
+    J --> K["repository_dispatch で tigerokuma/context-bank の sync-free-packs.yml を起動"]
 ```
 
 ## 投稿フロー
@@ -52,7 +52,7 @@ flowchart LR
 4. Pull Request を作成します。
 5. central repo 側の CI と maintainer review を待ちます。
 6. 承認されれば maintainer が merge します。
-7. merge 後、`publish-pack-artifacts.yml` が pack ZIP asset を publish または再利用し、`catalogs/pack-artifacts.json` を更新します。
+7. merge 後、`publish-pack-artifacts.yml` が pack ZIP asset を publish または再利用し、`catalogs/pack-artifacts.json` を更新したうえで、成功時に downstream の `tigerokuma/context-bank` sync workflow を自動 dispatch します。
 
 ## 既存 Pack の更新方法
 
@@ -129,7 +129,7 @@ python3 scripts/validate-free-pack.py \
 2. `manifest.json`、`SKILL.md`、変更ファイルを確認します。
 3. `pull_request` validation workflow が通っていることを確認します。
 4. 問題なければ merge します。squash merge でも構いません。
-5. merge 後、`publish-pack-artifacts.yml` が成功し、release asset と `catalogs/pack-artifacts.json` が更新されたことを確認します。
+5. merge 後、`publish-pack-artifacts.yml` が成功し、release asset と `catalogs/pack-artifacts.json` が更新され、downstream の `tigerokuma/context-bank` sync workflow が起動されたことを確認します。manual な downstream sync は fallback / recovery 用です。
 
 ## Advanced Maintainer Workflow
 
@@ -143,4 +143,4 @@ python3 scripts/validate-free-pack.py \
 - public PR validation では marketplace の本番 secret を使いません。
 - この public repo から private app へ直接書き込みません。
 - `external_repo` registration flow は未対応です。
-- `catalogs/pack-artifacts.json` を downstream marketplace が consume する統合は、まだ別の今後の作業です。
+- central repo での publish 成功後、downstream sync は自動で起動されます。manual な downstream sync は dispatch や downstream 実行の再試行が必要なときの fallback / recovery 手段です。

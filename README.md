@@ -9,7 +9,7 @@ This repo is the central public repository for approved free packs in Context Ba
 - Contributors submit free packs by opening pull requests against this repo.
 - GitHub Actions validate untrusted PRs without marketplace production secrets.
 - Merge is the approval event.
-- After merge, GitHub Actions publish a pack-only ZIP to the public `pack-artifacts` release and refresh `catalogs/pack-artifacts.json`.
+- After merge, GitHub Actions publish a pack-only ZIP to the public `pack-artifacts` release, refresh `catalogs/pack-artifacts.json`, and automatically trigger the private app repo sync workflow.
 
 Paid packs are out of scope here. MVP supports only free packs with `source.type = internal_repo`.
 
@@ -41,7 +41,7 @@ flowchart LR
     G --> H["publish-pack-artifacts.yml publishes pack-only ZIPs"]
     H --> I["GitHub Release: pack-artifacts"]
     H --> J["catalogs/pack-artifacts.json refreshed"]
-    J --> K["Downstream marketplace later consumes artifactUrl"]
+    J --> K["repository_dispatch triggers tigerokuma/context-bank sync-free-packs.yml"]
 ```
 
 ## Submission Flow
@@ -52,7 +52,7 @@ flowchart LR
 4. Open a pull request.
 5. Wait for central repo CI and maintainer review.
 6. If approved, the maintainer merges the PR.
-7. After merge, the `publish-pack-artifacts.yml` workflow publishes or reuses the pack ZIP asset and refreshes `catalogs/pack-artifacts.json`.
+7. After merge, the `publish-pack-artifacts.yml` workflow publishes or reuses the pack ZIP asset, refreshes `catalogs/pack-artifacts.json`, and automatically dispatches the downstream `tigerokuma/context-bank` sync workflow after successful publish/catalog completion.
 
 ## Updating An Existing Pack
 
@@ -129,7 +129,7 @@ python3 scripts/validate-free-pack.py \
 2. Review `manifest.json`, `SKILL.md`, and the changed file tree.
 3. Confirm the `pull_request` validation workflow passed.
 4. Merge if approved. Squash merge is acceptable.
-5. After merge, confirm `publish-pack-artifacts.yml` succeeded and refreshed the release assets plus `catalogs/pack-artifacts.json`.
+5. After merge, confirm `publish-pack-artifacts.yml` succeeded, refreshed the release assets plus `catalogs/pack-artifacts.json`, and triggered the downstream `tigerokuma/context-bank` sync workflow. Manual downstream sync should be used only for fallback or recovery.
 
 ## Advanced Maintainer Workflow
 
@@ -143,4 +143,4 @@ This is an advanced maintainer workflow, not the primary contributor path. Stand
 - No marketplace production secrets in public PR validation.
 - No direct write from this public repo into the private app.
 - No `external_repo` registration flow yet.
-- Downstream marketplace integration to consume `catalogs/pack-artifacts.json` is still separate work.
+- Automatic downstream sync now starts from the central repo after successful publish. Manual downstream sync remains fallback or recovery behavior if the dispatch or downstream run needs to be retried.

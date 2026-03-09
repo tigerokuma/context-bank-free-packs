@@ -51,7 +51,8 @@ This repo is the MVP source of truth for approved free packs after merge.
 
 - `validate-free-pack.yml` validates changed pack directories in pull requests
 - `publish-pack-artifacts.yml` runs after merge to publish pack-only ZIP assets
-  plus the generated artifact catalog
+  plus the generated artifact catalog, then dispatches the downstream private
+  app repo sync workflow after a successful publish
 - `submit-from-trusted-source-repo.yml` can be called from a trusted source
   repo to open or update a central-repo submission PR
 
@@ -195,7 +196,10 @@ After a maintainer merges a free-pack pull request:
    Release and leaves historical assets untouched.
 5. The workflow rewrites `catalogs/pack-artifacts.json` to point each current
    pack at its latest pack-only ZIP.
-6. If publishing fails, the merge remains in GitHub and the previously
+6. After a successful publish/catalog update, the workflow sends a
+   `repository_dispatch` event to `tigerokuma/context-bank` so the private app
+   repo can run its `sync-free-packs.yml` workflow automatically.
+7. If publishing fails, the merge remains in GitHub and the previously
    committed catalog stays intact.
 
 ## Contributor Constraints
