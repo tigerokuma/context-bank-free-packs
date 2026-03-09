@@ -1,50 +1,90 @@
 # Context Bank Free Packs
 
+[English](#english) | [日本語](#japanese)
+
 This repository is the public free-pack intake for Context Bank.
 
-Its MVP purpose is narrow:
+<a id="english"></a>
 
-- contributors submit free packs through GitHub pull requests
-- maintainers review and merge approved packs
-- GitHub Actions validate packs safely without marketplace secrets
-- post-merge sync produces normalized payloads for a future private marketplace
-  connection
+## English
 
-Paid packs are out of scope here. The public repo only supports free packs with
-`source.type = internal_repo` in MVP.
+### Overview
 
-See the source-of-truth docs:
+This repo is the central public repository for approved free packs.
+
+- Contributors can submit free packs by opening pull requests against this repo.
+- Trusted owner-managed source repos can also open or update submission PRs automatically.
+- GitHub Actions validate untrusted PRs without marketplace production secrets.
+- Merge is the approval event.
+- After merge, the private marketplace app can ingest the approved pack by running `pnpm free-pack:sync`.
+
+Paid packs are out of scope here. MVP supports only free packs with `source.type = internal_repo`.
+
+### Source Of Truth Docs
 
 - [Hybrid Submission Strategy](docs/context-bank/00-overview/hybrid-submission-strategy.md)
 - [Public Free-Pack Repo Layout](docs/context-bank/02-product/free-pack-repo-layout.md)
 - [Free Pack PR Rules](docs/context-bank/06-execution/free-pack-pr-rules.md)
 - [Trusted Source Repo Submission](docs/context-bank/06-execution/trusted-source-repo-submission.md)
 
-## Submission Flow
+### Flow Diagram
 
-1. Fork this repository or create a feature branch.
+```mermaid
+flowchart LR
+    A["Creator / Contributor"] --> B["Option A: Fork free-packs repo"]
+    A --> C["Option B: Trusted source repo workflow"]
+
+    B --> D["Add or update one pack under packs/{creator}/{slug}"]
+    D --> E["Open PR to central public repo"]
+
+    C --> F["Source repo Action copies pack and opens/updates PR"]
+    F --> E
+
+    E --> G["Central repo pull_request CI"]
+    G --> G1["validate-free-pack.yml"]
+    G1 --> G2["manifest.json / SKILL.md checks"]
+    G1 --> G3["path, free pricing, source.type checks"]
+    G1 --> G4["safety scan: executables, symlinks, hidden files, blocked patterns"]
+
+    G --> H{"Maintainer review"}
+    H -->|"approve + merge"| I["Merged commit on main = approval event"]
+    H -->|"request changes"| E
+
+    I --> J["sync-marketplace.yml builds normalized artifact"]
+    I --> K["Private marketplace repo: run pnpm free-pack:sync manually"]
+    K --> L["Marketplace stores normalized snapshot"]
+    L --> M["Catalog page / detail page render synced free pack"]
+```
+
+### Submission Paths
+
+#### Path 1: Standard contributor PR
+
+1. Fork this repository.
 2. Add or update exactly one pack directory at `packs/<creator>/<slug>/`.
 3. Include both `manifest.json` and `SKILL.md`.
-4. Open a pull request with the free-pack PR template.
-5. GitHub Actions validate the changed pack directory only.
-6. A maintainer reviews the diff and merges the PR if approved.
-7. After merge, the sync workflow generates normalized metadata from the merged
-   commit SHA.
+4. Open a pull request.
+5. Wait for central repo CI and maintainer review.
 
-Merge is the approval event in this MVP.
+No PAT is required for this path.
 
-Owner-managed source repos may also create or update these PRs automatically by
-calling the reusable workflow at
-`.github/workflows/submit-from-trusted-source-repo.yml`. That flow still ends
-in a normal central-repo PR and uses the same validation and merge rules.
+#### Path 2: Trusted source repo automation
 
-## Directory Layout
+1. Keep the authored pack in another repo you control.
+2. Run the source repo workflow.
+3. The workflow opens or updates a PR in this repo.
+4. Central repo CI and maintainer review still happen here.
+
+This path needs a source-repo secret because GitHub Actions is writing to another repository.
+
+### Directory Layout
 
 ```text
 .
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
+│       ├── submit-from-trusted-source-repo.yml
 │       ├── sync-marketplace.yml
 │       └── validate-free-pack.yml
 ├── catalogs/
@@ -52,9 +92,6 @@ in a normal central-repo PR and uses the same validation and merge rules.
 │   └── latest.json
 ├── docs/
 │   └── context-bank/
-│       ├── 00-overview/
-│       ├── 02-product/
-│       └── 06-execution/
 ├── packs/
 │   └── <creator>/
 │       └── <slug>/
@@ -67,33 +104,19 @@ in a normal central-repo PR and uses the same validation and merge rules.
 │           └── assets/
 └── scripts/
     ├── build-sync-payload.py
+    ├── create-submission-pr.py
     ├── free_pack_common.py
     └── validate-free-pack.py
 ```
 
-## Contributor Guide
+### Contributor Guide
 
-Requirements:
+- One PR should touch exactly one pack directory.
+- Free packs only.
+- No executables, symlinks, hidden files, or dangerous prompt/shell content.
+- `manifest.json` and `SKILL.md` must agree on free pricing and category.
 
-- one PR should touch exactly one pack directory under `packs/<creator>/<slug>/`
-- free packs only
-- no executables, symlinks, or dangerous shell/prompt-injection content
-- `manifest.json` and `SKILL.md` must agree on free pricing and category
-
-Recommended steps:
-
-1. Copy the reference pack at
-   [packs/context-bank/sample-free-pack](packs/context-bank/sample-free-pack).
-2. Rename the path to your own `packs/<creator>/<slug>/`.
-3. Update `manifest.json`:
-   - keep `schemaVersion = 1`
-   - set `pack.priceType = "free"`
-   - set `source.type = "internal_repo"`
-   - set `source.repoUrl = "https://github.com/tigerokuma/context-bank-free-packs"`
-   - set `source.path` to your pack directory
-4. Update `SKILL.md` frontmatter so `slug`, `creatorHandle`, `category`, and
-   `priceType` match the manifest.
-5. Run local validation:
+Recommended local validation:
 
 ```bash
 printf '%s\n' \
@@ -107,47 +130,141 @@ python3 scripts/validate-free-pack.py \
   --changed-files-file /tmp/changed-files.txt
 ```
 
-6. Open a pull request with the repository template.
-
-## Maintainer Guide
-
-When reviewing a submission PR:
+### Maintainer Guide
 
 1. Confirm the PR changes exactly one pack directory.
 2. Review `manifest.json`, `SKILL.md`, and the changed file tree.
-3. Confirm CI passed on the untrusted `pull_request` workflow.
-4. Check that the pack is clearly free and safe for public review.
-5. Merge when approved. Squash merge is acceptable.
+3. Confirm the `pull_request` validation workflow passed.
+4. Merge if approved. Squash merge is acceptable.
+5. After merge, run `pnpm free-pack:sync` in the private marketplace repo when you want marketplace visibility to update.
 
-After merge:
+### Current MVP Boundaries
 
-1. `sync-marketplace.yml` runs on the merged default-branch commit.
-2. The workflow writes normalized payloads to an artifact.
-3. MVP publication still happens by running `pnpm free-pack:sync` in the
-   private marketplace repo.
-4. The artifact remains the safe scaffold for a future private marketplace sync.
+- No paid-pack logic.
+- No marketplace production secrets in public PR validation.
+- No direct write from this public repo into the private app.
+- No `external_repo` registration flow yet.
+- Post-merge marketplace reflection is still manual sync.
 
-This repo intentionally does not publish directly into production systems yet.
+<a id="japanese"></a>
 
-## Validation Rules
+## 日本語
 
-The PR validator currently enforces:
+### 概要
 
-- changed pack path must resolve to `packs/<creator>/<slug>/`
-- only one changed pack directory is allowed in a submission PR
-- `manifest.json` must exist and follow the MVP contract
-- `SKILL.md` must exist and include matching frontmatter
-- `pack.priceType` and `SKILL.md` `priceType` must both be `free`
-- `source.type` must be `internal_repo`
-- executable bits, symlinks, and blocked executable extensions are rejected
-- basic dangerous shell and prompt-injection strings are rejected
+このリポジトリは、Context Bank の free pack を受け付ける中央の public repository です。
 
-The validator is intentionally conservative for public PR safety.
+- free pack はこの repo への PR で審査されます。
+- 自分が管理する trusted source repo から、自動でこの repo に PR を作ることもできます。
+- GitHub Actions は marketplace の本番 secret を使わずに validation を行います。
+- `merge` が approval event です。
+- `merge` 後、private marketplace app 側で `pnpm free-pack:sync` を実行すると catalog / detail に反映できます。
 
-## Current MVP Boundaries
+paid pack はこの repo の対象外です。MVP では `source.type = internal_repo` の free pack のみ対応します。
 
-- no paid-pack logic
-- no marketplace secrets
-- no direct write into the private app
-- no `external_repo` registration flow yet
-- sync produces artifacts only; it does not mutate catalogs automatically
+### Source Of Truth Docs
+
+- [Hybrid Submission Strategy](docs/context-bank/00-overview/hybrid-submission-strategy.md)
+- [Public Free-Pack Repo Layout](docs/context-bank/02-product/free-pack-repo-layout.md)
+- [Free Pack PR Rules](docs/context-bank/06-execution/free-pack-pr-rules.md)
+- [Trusted Source Repo Submission](docs/context-bank/06-execution/trusted-source-repo-submission.md)
+
+### フロー図
+
+上の mermaid 図が、以下をまとめて表しています。
+
+- contributor が `fork -> push -> PR` する通常フロー
+- trusted source repo から自動で PR を作るフロー
+- central repo 側の CI validation
+- maintainer review と merge
+- merge 後に private app 側の `pnpm free-pack:sync` で marketplace に反映される流れ
+
+### 投稿フロー
+
+#### 1. 通常の contributor フロー
+
+1. この repo を fork します。
+2. `packs/<creator>/<slug>/` に 1 pack だけ追加または更新します。
+3. `manifest.json` と `SKILL.md` を含めます。
+4. PR を作ります。
+5. central repo 側の CI と maintainer review を待ちます。
+
+このフローでは `PAT` は不要です。
+
+#### 2. Trusted source repo フロー
+
+1. 別 repo で pack を管理します。
+2. source repo 側の workflow を実行します。
+3. workflow がこの repo に対して PR を新規作成または更新します。
+4. その後の CI と review は通常 PR と同じです。
+
+このフローだけ、別 repo に書き込みを行うため source repo 側に secret が必要です。
+
+### ディレクトリ構成
+
+```text
+.
+├── .github/
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── workflows/
+│       ├── submit-from-trusted-source-repo.yml
+│       ├── sync-marketplace.yml
+│       └── validate-free-pack.yml
+├── catalogs/
+│   ├── index.json
+│   └── latest.json
+├── docs/
+│   └── context-bank/
+├── packs/
+│   └── <creator>/
+│       └── <slug>/
+│           ├── manifest.json
+│           ├── SKILL.md
+│           ├── knowledge.md
+│           ├── data.json
+│           ├── examples/
+│           ├── prompts/
+│           └── assets/
+└── scripts/
+    ├── build-sync-payload.py
+    ├── create-submission-pr.py
+    ├── free_pack_common.py
+    └── validate-free-pack.py
+```
+
+### Contributor 向けルール
+
+- 1 PR で変更する pack directory は 1 つだけです。
+- free pack のみ対象です。
+- executable、symlink、hidden file、危険な prompt / shell content は不可です。
+- `manifest.json` と `SKILL.md` は category と free pricing を一致させてください。
+
+ローカル validation:
+
+```bash
+printf '%s\n' \
+  packs/<creator>/<slug>/manifest.json \
+  packs/<creator>/<slug>/SKILL.md \
+  > /tmp/changed-files.txt
+
+python3 scripts/validate-free-pack.py \
+  --repo-root . \
+  --repo-url https://github.com/tigerokuma/context-bank-free-packs \
+  --changed-files-file /tmp/changed-files.txt
+```
+
+### Maintainer 向け運用
+
+1. PR が 1 pack directory だけを触っているか確認します。
+2. `manifest.json`、`SKILL.md`、変更ファイルを確認します。
+3. `pull_request` validation workflow が通っていることを確認します。
+4. 問題なければ merge します。
+5. marketplace へ反映したいタイミングで、private marketplace repo 側で `pnpm free-pack:sync` を実行します。
+
+### 現在の MVP 境界
+
+- paid pack のロジックはここに含みません。
+- public PR validation では marketplace の本番 secret を使いません。
+- この public repo から private app へ直接書き込みません。
+- `external_repo` 登録モデルは未対応です。
+- marketplace 反映は post-merge の manual sync 前提です。
