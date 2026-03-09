@@ -53,6 +53,8 @@ This repo is the MVP source of truth for approved free packs after merge.
 - `validate-free-pack.yml` validates changed pack directories in pull requests
 - `sync-marketplace.yml` runs after merge to publish normalized metadata to the
   private marketplace system
+- `submit-from-trusted-source-repo.yml` can be called from a trusted source
+  repo to open or update a central-repo submission PR
 
 ## Per-Pack Directory Contract
 
@@ -150,6 +152,15 @@ metadata without parsing only markdown.
 - Tags and short description should not materially conflict between the manifest
   and `SKILL.md`
 
+### Submission Provenance Rules
+
+- A PR created from another trusted repo must still land as a normal central
+  repo pull request
+- The PR body should include the source repository URL, source ref, and source
+  pack path
+- Generated `manifest.json` in the central repo remains the publishable
+  contract, even when the authored pack files originate in another repo
+
 ## Normalized Source Coordinates
 
 The private marketplace persists approved free-pack source data in this
@@ -187,5 +198,6 @@ After a maintainer merges a free-pack pull request:
 - Free-pack contributors may add or update only free packs
 - Paid metadata must not appear in public free-pack directories
 - Large binary or executable payloads are not allowed
+- Hidden files such as `.DS_Store` or secret-bearing dotfiles are not allowed
 - One pull request should target one pack directory unless a maintainer has
   explicitly requested a multi-pack operational change

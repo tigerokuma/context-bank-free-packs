@@ -1,0 +1,166 @@
+name: Submit Free Pack From Trusted Source Repo
+
+on:
+  workflow_call:
+    inputs:
+      pack_path:
+        description: Pack directory path in the caller repository.
+        required: true
+        type: string
+      creator_handle:
+        description: Creator handle used under packs/<creator>/<slug>/ in the central repo.
+        required: true
+        type: string
+      pack_slug:
+        description: Optional slug override. Defaults to the source pack directory name.
+        required: false
+        type: string
+      pack_title:
+        description: Optional manifest title override.
+        required: false
+        type: string
+      pack_summary:
+        description: Optional manifest summary override.
+        required: false
+        type: string
+      central_repo:
+        description: Target central public free-pack repository.
+        required: false
+        default: tigerokuma/context-bank-free-packs
+        type: string
+      central_repo_url:
+        description: Canonical public URL of the target central repo.
+        required: false
+        default: https://github.com/tigerokuma/context-bank-free-packs
+        type: string
+      central_base_branch:
+        description: Base branch for submission PRs.
+        required: false
+        default: main
+        type: string
+    secrets:
+      central_repo_token:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+
+    outputs:
+      status: ${{ steps.publish.outputs.status }}
+      pull_request_url: ${{ steps.publish.outputs.pull_request_url }}
+      pull_request_number: ${{ steps.publish.outputs.pull_request_number }}
+      branch: ${{ steps.publish.outputs.branch }}
+      pack_directory: ${{ steps.publish.outputs.pack_directory }}
+
+    steps:
+      - name: Check out caller repository
+        uses: actions/checkout@v4
+        with:
+          path: source-repo
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out central repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.central_repo }}
+          ref: ${{ inputs.central_base_branch }}
+          token: ${{ secrets.central_repo_token }}
+          path: central-repo
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create or update submission PR
+        id: publish
+        shell: bash
+        env:
+          CENTRAL_REPO_TOKEN: ${{ secrets.central_repo_token }}
+          INPUT_PACK_SLUG: ${{ inputs.pack_slug }}
+          INPUT_PACK_TITLE: ${{ inputs.pack_title }}
+          INPUT_PACK_SUMMARY: ${{ inputs.pack_summary }}
+        run: |
+          set -euo pipefail
+          OPTIONAL_ARGS=()
+
+          if [ -n "${INPUT_PACK_SLUG}" ]; then
+            OPTIONAL_ARGS+=(--pack-slug "${INPUT_PACK_SLUG}")
+          fi
+
+          if [ -n "${INPUT_PACK_TITLE}" ]; then
+            OPTIONAL_ARGS+=(--pack-title "${INPUT_PACK_TITLE}")
+          fi
+
+          if [ -n "${INPUT_PACK_SUMMARY}" ]; then
+            OPTIONAL_ARGS+=(--pack-summary "${INPUT_PACK_SUMMARY}")
+          fi
+
+          python3 central-repo/scripts/create-submission-pr.py \
+            --source-repo-root source-repo \
+            --source-pack-path "${{ inputs.pack_path }}" \
+            --source-repository "${{ github.repository }}" \
+            --source-ref "${{ github.sha }}" \
+            --central-repo-root central-repo \
+            --central-repo "${{ inputs.central_repo }}" \
+            --central-repo-url "${{ inputs.central_repo_url }}" \
+            --central-base-branch "${{ inputs.central_base_branch }}" \
+            --creator-handle "${{ inputs.creator_handle }}" \
+            "${OPTIONAL_ARGS[@]}" \
+            --github-token "${CENTRAL_REPO_TOKEN}" \
+            --output-json central-repo/.submission-result.json
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          result = json.loads(Path("central-repo/.submission-result.json").read_text())
+          output_path = Path(os.environ["GITHUB_OUTPUT"])
+          with output_path.open("a", encoding="utf-8") as handle:
+              handle.write(f"status={result.get('status', '')}\n")
+              handle.write(f"branch={result.get('branch', '')}\n")
+              handle.write(f"pack_directory={result.get('packDirectory', '')}\n")
+              pull_request = result.get("pullRequest") or {}
+              handle.write(f"pull_request_url={pull_request.get('url', '')}\n")
+              number = pull_request.get("number")
+              handle.write(f"pull_request_number={'' if number is None else number}\n")
+          PY
+
+      - name: Upload submission result
+        uses: actions/upload-artifact@v4
+        with:
+          name: trusted-source-submission-${{ github.run_id }}
+          path: central-repo/.submission-result.json
+          if-no-files-found: error
+
+      - name: Write summary
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          result = json.loads(Path("central-repo/.submission-result.json").read_text())
+          pull_request = result.get("pullRequest") or {}
+          summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          lines = [
+              "## Context Bank Free Pack Submission",
+              "",
+              f"- Status: `{result.get('status', 'unknown')}`",
+              f"- Pack directory: `{result.get('packDirectory', 'unknown')}`",
+              f"- Branch: `{result.get('branch', 'unknown')}`",
+          ]
+          if pull_request.get("url"):
+              lines.append(f"- Pull request: {pull_request['url']}")
+          if result.get("reason"):
+              lines.append(f"- Note: {result['reason']}")
+          summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY

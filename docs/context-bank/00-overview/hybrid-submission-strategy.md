@@ -52,13 +52,14 @@ preserving a simpler path for paid submissions and non-technical creators.
 
 ### Free Packs
 
-1. Creator forks the public free-pack repo or creates a feature branch.
-2. Creator adds or updates a pack directory plus listing metadata in the
-   required location.
+1. Creator opens a PR directly in the public free-pack repo, or a trusted
+   source repo workflow opens or updates that PR on the creator's behalf.
+2. The submission changes one approved pack directory plus listing metadata in
+   the required central-repo location.
 3. GitHub Actions run validation and safety checks without privileged
    marketplace secrets.
-4. Operator reviews the PR diff, README, file tree, scan result, and category
-   or pricing policy.
+4. Operator reviews the PR diff, PR provenance, file tree, scan result, and
+   category or pricing policy.
 5. Approval is represented by merging the PR into the public repo default
    branch.
 6. The marketplace syncs approved metadata from the merged commit for catalog
@@ -74,6 +75,7 @@ preserving a simpler path for paid submissions and non-technical creators.
 ## Core Principles
 
 - GitHub-first for free supply growth
+- PR-first for free-pack approval
 - Review before publish
 - Merged commit SHAs are the approvable source of truth for GitHub-submitted
   free packs

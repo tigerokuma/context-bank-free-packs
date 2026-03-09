@@ -18,6 +18,7 @@ See the source-of-truth docs:
 - [Hybrid Submission Strategy](docs/context-bank/00-overview/hybrid-submission-strategy.md)
 - [Public Free-Pack Repo Layout](docs/context-bank/02-product/free-pack-repo-layout.md)
 - [Free Pack PR Rules](docs/context-bank/06-execution/free-pack-pr-rules.md)
+- [Trusted Source Repo Submission](docs/context-bank/06-execution/trusted-source-repo-submission.md)
 
 ## Submission Flow
 
@@ -31,6 +32,11 @@ See the source-of-truth docs:
    commit SHA.
 
 Merge is the approval event in this MVP.
+
+Owner-managed source repos may also create or update these PRs automatically by
+calling the reusable workflow at
+`.github/workflows/submit-from-trusted-source-repo.yml`. That flow still ends
+in a normal central-repo PR and uses the same validation and merge rules.
 
 ## Directory Layout
 
@@ -117,7 +123,9 @@ After merge:
 
 1. `sync-marketplace.yml` runs on the merged default-branch commit.
 2. The workflow writes normalized payloads to an artifact.
-3. That artifact is the safe scaffold for a future private marketplace sync.
+3. MVP publication still happens by running `pnpm free-pack:sync` in the
+   private marketplace repo.
+4. The artifact remains the safe scaffold for a future private marketplace sync.
 
 This repo intentionally does not publish directly into production systems yet.
 

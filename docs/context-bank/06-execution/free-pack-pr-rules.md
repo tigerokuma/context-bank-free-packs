@@ -15,7 +15,8 @@ free-pack repo so free-pack submission stays reviewable, automatable, and safe.
 
 ## Contributor Workflow
 
-1. Fork the public free-pack repo or create a feature branch.
+1. Fork the public free-pack repo, create a feature branch, or use a trusted
+   source repo workflow that opens or updates the PR for you.
 2. Add or update exactly one pack directory under `packs/<creator>/<slug>/`.
 3. Update `manifest.json` and pack files together.
 4. Open a pull request using the free-pack PR template.
@@ -48,6 +49,8 @@ Every free-pack submission PR should include:
 - short summary of what the pack does
 - verification performed locally, if any
 - confirmation that the pack is free
+- source repository URL, source ref, and source pack path when the PR was
+  generated from another repo
 
 ## Validation Expectations
 
@@ -59,6 +62,7 @@ CI should fail the PR if any of the following are true:
 - `manifest.json` and `SKILL.md` disagree on category or free pricing
 - blocked executable files are present
 - blocked prompt-injection or shell patterns are present
+- hidden files or junk OS files are present
 - asset or repository policy limits are exceeded
 
 ## Review Rules

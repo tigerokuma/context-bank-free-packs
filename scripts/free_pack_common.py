@@ -10,11 +10,14 @@ SEGMENT_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 TAG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,49}$")
 
 ALLOWED_CATEGORIES = {
+    "agriculture",
     "analysis",
     "automation",
     "business",
     "developer-tools",
+    "developer_tools",
     "education",
+    "investing",
     "marketing",
     "operations",
     "productivity",
@@ -41,6 +44,11 @@ BLOCKED_EXTENSIONS = {
     ".scr",
     ".sh",
     ".so",
+}
+
+IGNORED_FILENAMES = {
+    ".DS_Store",
+    "Thumbs.db",
 }
 
 BLOCKED_PATTERNS = [
@@ -319,10 +327,19 @@ def find_scan_errors(repo_root: Path, pack_dir: str) -> list[str]:
             continue
 
         relative_path = path.relative_to(repo_root).as_posix()
+        pack_relative_parts = path.relative_to(pack_path).parts
         stat_result = path.lstat()
 
         if path.is_symlink():
             errors.append(f"{relative_path}: symlinks are not allowed")
+            continue
+
+        if any(part in IGNORED_FILENAMES for part in pack_relative_parts):
+            errors.append(f"{relative_path}: junk OS files are not allowed")
+            continue
+
+        if any(part.startswith(".") for part in pack_relative_parts):
+            errors.append(f"{relative_path}: hidden files or directories are not allowed")
             continue
 
         if stat_result.st_mode & 0o111:

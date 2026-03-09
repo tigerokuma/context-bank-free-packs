@@ -15,6 +15,13 @@ Please use this PR template for free-pack submissions into the public repo.
 - Category:
 - Confirmation that `priceType=free` in both `manifest.json` and `SKILL.md`:
 
+### Submission Provenance
+
+- Submission mode: `manual-pr` | `trusted-source-repo`
+- Source repository URL (required for trusted-source-repo submissions):
+- Source commit SHA (required for trusted-source-repo submissions):
+- Source pack path (required for trusted-source-repo submissions):
+
 ### Pack Summary
 
 Describe what the pack does in 2-4 sentences.
