@@ -77,7 +77,7 @@ BLOCKED_PATTERNS = [
 
 ALLOWED_ANCILLARY_PATTERNS = [
     re.compile(r"^README\.md$"),
-    re.compile(r"^catalogs/(?:index|latest)\.json$"),
+    re.compile(r"^catalogs/pack-artifacts\.json$"),
     re.compile(r"^docs/context-bank/.+\.md$"),
 ]
 

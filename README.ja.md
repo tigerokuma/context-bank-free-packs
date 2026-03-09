@@ -2,14 +2,14 @@
 
 [Read in English](README.md)
 
-この repo は、Context Bank の approved free pack を扱う中央の public repository です。
+この repo は、Context Bank の承認済み free pack を扱う中央の public repository です。
 
 ## 概要
 
 - contributor はこの repo に PR を出して free pack を投稿できます。
 - GitHub Actions は marketplace の本番 secret を使わずに untrusted PR を validation します。
 - `merge` が approval event です。
-- `merge` 後、private marketplace app 側で `pnpm free-pack:sync` を実行すると、approved pack を取り込めます。
+- `merge` 後、GitHub Actions が pack-only ZIP を public な `pack-artifacts` release に publish し、`catalogs/pack-artifacts.json` を更新します。
 
 paid pack はこの repo の対象外です。MVP では `source.type = internal_repo` の free pack のみ対応します。
 
@@ -38,10 +38,10 @@ flowchart LR
     F -->|"approve + merge"| G["main に merge された commit = approval event"]
     F -->|"changes requested"| D
 
-    G --> H["sync-marketplace.yml が normalized artifact を生成"]
-    G --> I["private marketplace repo で pnpm free-pack:sync を手動実行"]
-    I --> J["marketplace 用 normalized snapshot を保存"]
-    J --> K["catalog / detail page に synced free pack を表示"]
+    G --> H["publish-pack-artifacts.yml が pack-only ZIP を publish"]
+    H --> I["GitHub Release: pack-artifacts"]
+    H --> J["catalogs/pack-artifacts.json を更新"]
+    J --> K["downstream marketplace は将来 artifactUrl を別途 consume"]
 ```
 
 ## 投稿フロー
@@ -52,7 +52,7 @@ flowchart LR
 4. Pull Request を作成します。
 5. central repo 側の CI と maintainer review を待ちます。
 6. 承認されれば maintainer が merge します。
-7. merge 後、private app repo 側で `pnpm free-pack:sync` を実行すると marketplace に取り込めます。
+7. merge 後、`publish-pack-artifacts.yml` が pack ZIP asset を publish または再利用し、`catalogs/pack-artifacts.json` を更新します。
 
 ## 既存 Pack の更新方法
 
@@ -63,7 +63,7 @@ flowchart LR
 3. metadata が変わるなら `manifest.json` と `SKILL.md` も一緒に更新します。
 4. PR を作成します。
 5. CI と maintainer review を待ちます。
-6. merge 後、次回の `pnpm free-pack:sync` で marketplace 側の approved version が更新されます。
+6. merge 後、その pack directory が変更されていれば、新しい承認済み version が新しい pack-only ZIP として publish されます。
 
 重要ルール:
 
@@ -79,11 +79,10 @@ flowchart LR
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
 │       ├── submit-from-trusted-source-repo.yml
-│       ├── sync-marketplace.yml
+│       ├── publish-pack-artifacts.yml
 │       └── validate-free-pack.yml
 ├── catalogs/
-│   ├── index.json
-│   └── latest.json
+│   └── pack-artifacts.json
 ├── docs/
 │   └── context-bank/
 ├── packs/
@@ -97,7 +96,7 @@ flowchart LR
 │           ├── prompts/
 │           └── assets/
 └── scripts/
-    ├── build-sync-payload.py
+    ├── build-pack-artifacts.py
     ├── create-submission-pr.py
     ├── free_pack_common.py
     └── validate-free-pack.py
@@ -130,7 +129,7 @@ python3 scripts/validate-free-pack.py \
 2. `manifest.json`、`SKILL.md`、変更ファイルを確認します。
 3. `pull_request` validation workflow が通っていることを確認します。
 4. 問題なければ merge します。squash merge でも構いません。
-5. marketplace へ反映したいタイミングで、private marketplace repo 側で `pnpm free-pack:sync` を実行します。
+5. merge 後、`publish-pack-artifacts.yml` が成功し、release asset と `catalogs/pack-artifacts.json` が更新されたことを確認します。
 
 ## Advanced Maintainer Workflow
 
@@ -144,4 +143,4 @@ python3 scripts/validate-free-pack.py \
 - public PR validation では marketplace の本番 secret を使いません。
 - この public repo から private app へ直接書き込みません。
 - `external_repo` registration flow は未対応です。
-- marketplace 反映は post-merge の manual sync 前提です。
+- `catalogs/pack-artifacts.json` を downstream marketplace が consume する統合は、まだ別の今後の作業です。
