@@ -1,0 +1,57 @@
+name: Sync Marketplace Scaffold
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-normalized-payload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Collect changed files from merged state
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BEFORE_SHA}" ] && [ "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]; then
+            git diff --name-only "${BEFORE_SHA}" "${AFTER_SHA}" > .changed-files.txt
+          else
+            git diff-tree --no-commit-id --name-only -r "${AFTER_SHA}" > .changed-files.txt
+          fi
+          echo "Changed files:"
+          cat .changed-files.txt || true
+
+      - name: Build normalized payload artifact
+        run: |
+          set -euo pipefail
+          python3 scripts/build-sync-payload.py \
+            --repo-root . \
+            --repo-url "https://github.com/${{ github.repository }}" \
+            --ref "${{ github.sha }}" \
+            --changed-files-file .changed-files.txt \
+            --output-dir artifacts/marketplace-sync
+
+      - name: Upload normalized payload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketplace-sync-${{ github.sha }}
+          path: artifacts/marketplace-sync
+          if-no-files-found: error

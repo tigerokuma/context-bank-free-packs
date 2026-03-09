@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "slug": "sample-free-pack",
+    "creatorHandle": "context-bank",
+    "title": "Sample Free Pack",
+    "summary": "Reference free pack that shows the minimum repository contract for public PR submissions.",
+    "category": "education",
+    "tags": [
+      "example",
+      "free-pack",
+      "reference"
+    ],
+    "priceType": "free"
+  },
+  "source": {
+    "type": "internal_repo",
+    "repoUrl": "https://github.com/tigerokuma/context-bank-free-packs",
+    "path": "packs/context-bank/sample-free-pack"
+  },
+  "support": {
+    "homepage": "https://github.com/tigerokuma/context-bank-free-packs/tree/main/packs/context-bank/sample-free-pack",
+    "issues": "https://github.com/tigerokuma/context-bank-free-packs/issues"
+  }
+}

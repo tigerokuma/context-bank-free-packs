@@ -1,0 +1,45 @@
+name: Validate Free Pack
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  validate-free-pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Collect changed files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git diff --name-only "origin/${BASE_REF}"...HEAD > .changed-files.txt
+          echo "Changed files:"
+          cat .changed-files.txt
+
+      - name: Validate changed free-pack directory
+        run: |
+          set -euo pipefail
+          python3 scripts/validate-free-pack.py \
+            --repo-root . \
+            --repo-url "https://github.com/${{ github.repository }}" \
+            --changed-files-file .changed-files.txt

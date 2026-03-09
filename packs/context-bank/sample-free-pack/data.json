@@ -1,0 +1,8 @@
+{
+  "examples": [
+    {
+      "input": "Create a new free-pack PR.",
+      "output": "Add one pack directory, include manifest.json and SKILL.md, run validation, then open a PR."
+    }
+  ]
+}
