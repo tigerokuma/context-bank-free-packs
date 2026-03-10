@@ -21,13 +21,12 @@ if str(SCRIPTS_ROOT) not in sys.path:
 
 from free_pack_common import (  # noqa: E402
     ALLOWED_CATEGORIES,
-    BLOCKED_EXTENSIONS,
-    BLOCKED_PATTERNS,
     IGNORED_FILENAMES,
     SEGMENT_RE,
     TAG_RE,
     canonicalize_repo_url,
     parse_skill_frontmatter,
+    scan_pack_file,
 )
 
 
@@ -190,33 +189,15 @@ def inspect_source_tree(source_dir: Path) -> tuple[list[CandidateFile], list[str
                 warnings.append(f"{relative_path.as_posix()}: skipped hidden file")
                 continue
 
-            if file_path.suffix.lower() in BLOCKED_EXTENSIONS:
-                errors.append(
-                    f"{relative_path.as_posix()}: blocked executable file extension `{file_path.suffix.lower()}`"
-                )
+            file_errors = scan_pack_file(
+                file_path,
+                display_root=source_dir,
+                pack_root=source_dir,
+                allow_executable_permissions=True,
+            )
+            if file_errors:
+                errors.extend(file_errors)
                 continue
-
-            try:
-                raw = file_path.read_bytes()
-            except OSError as exc:
-                errors.append(f"{relative_path.as_posix()}: failed to read file ({exc})")
-                continue
-
-            if b"\x00" not in raw:
-                try:
-                    text = raw.decode("utf-8")
-                except UnicodeDecodeError:
-                    text = ""
-
-                if text:
-                    blocked_content = False
-                    for label, pattern in BLOCKED_PATTERNS:
-                        if pattern.search(text):
-                            errors.append(f"{relative_path.as_posix()}: blocked pattern detected ({label})")
-                            blocked_content = True
-                            break
-                    if blocked_content:
-                        continue
 
             preserved_top_level.add(relative_path.parts[0])
             candidates.append(

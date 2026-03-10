@@ -71,8 +71,10 @@ CI should fail the PR if any of the following are true:
 - the changed path does not match `packs/<creator>/<slug>/`
 - `manifest.json` and `SKILL.md` disagree on category or free pricing
 - blocked executable files are present
+- secret material such as PATs, cloud API keys, private keys, or DB URLs with embedded credentials is present
 - blocked prompt-injection or shell patterns are present
 - hidden files or junk OS files are present
+- opaque archives, database dumps, certificate/key bundles, or other blocked binary file types are present
 - asset or repository policy limits are exceeded
 
 ## Review Rules

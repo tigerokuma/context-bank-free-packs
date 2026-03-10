@@ -30,25 +30,56 @@ BLOCKED_EXTENSIONS = {
     ".app",
     ".bat",
     ".bin",
+    ".bz2",
+    ".cer",
     ".cmd",
     ".com",
+    ".crt",
+    ".db",
     ".deb",
+    ".der",
     ".dll",
     ".dmg",
     ".exe",
+    ".gz",
     ".jar",
+    ".key",
     ".msi",
     ".pkg",
+    ".p12",
+    ".pem",
+    ".pfx",
     ".ps1",
     ".rpm",
+    ".sqlite",
+    ".sqlite3",
     ".scr",
     ".sh",
     ".so",
+    ".tar",
+    ".tgz",
+    ".xz",
+    ".zip",
+    ".7z",
+    ".rar",
 }
 
 IGNORED_FILENAMES = {
     ".DS_Store",
     "Thumbs.db",
+}
+
+ALLOWED_BINARY_EXTENSIONS = {
+    ".avif",
+    ".bmp",
+    ".gif",
+    ".ico",
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".tif",
+    ".tiff",
+    ".webp",
 }
 
 BLOCKED_PATTERNS = [
@@ -73,6 +104,25 @@ BLOCKED_PATTERNS = [
         re.compile(r"\bpowershell(?:\.exe)?\b[^\n]{0,120}\s-enc(?:odedcommand)?\b", re.IGNORECASE),
     ),
     ("invoke-expression", re.compile(r"\b(?:invoke-expression|iex)\b", re.IGNORECASE)),
+]
+
+SECRET_PATTERNS = [
+    ("GitHub personal access token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36}\b")),
+    ("GitHub fine-grained personal access token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
+    (
+        "AWS access key ID",
+        re.compile(r"\b(?:A3T|AKIA|ASIA|AGPA|AIDA|AIPA|ANPA|ANVA|AROA)[A-Z0-9]{16}\b"),
+    ),
+    ("Google API key", re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b")),
+    ("Slack token", re.compile(r"\bxox(?:a|b|p|r|s|o|t)-[0-9A-Za-z-]{10,}\b")),
+    (
+        "database URL with embedded credentials",
+        re.compile(r"\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis):\/\/[^\/\s:@]+:[^@\s]+@[^\/\s]+"),
+    ),
+    (
+        "private key material",
+        re.compile(r"-----BEGIN (?:(?:RSA|OPENSSH|EC|DSA) )?PRIVATE KEY-----"),
+    ),
 ]
 
 ALLOWED_ANCILLARY_PATTERNS = [
@@ -318,6 +368,79 @@ def validate_skill_frontmatter(skill_frontmatter: dict, pack_dir: str, creator: 
     return errors
 
 
+def decode_utf8_text(raw: bytes) -> str | None:
+    if b"\x00" in raw:
+        return None
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+def scan_text_content(relative_path: str, text: str) -> list[str]:
+    errors: list[str] = []
+
+    for label, pattern in BLOCKED_PATTERNS:
+        if pattern.search(text):
+            errors.append(f"{relative_path}: blocked pattern detected ({label})")
+
+    for label, pattern in SECRET_PATTERNS:
+        if pattern.search(text):
+            errors.append(f"{relative_path}: secret-like content detected ({label})")
+
+    return errors
+
+
+def scan_pack_file(
+    path: Path,
+    *,
+    display_root: Path,
+    pack_root: Path,
+    allow_executable_permissions: bool = False,
+) -> list[str]:
+    errors: list[str] = []
+    relative_path = path.relative_to(display_root).as_posix()
+    pack_relative_parts = path.relative_to(pack_root).parts
+    stat_result = path.lstat()
+
+    if path.is_symlink():
+        errors.append(f"{relative_path}: symlinks are not allowed")
+        return errors
+
+    if any(part in IGNORED_FILENAMES for part in pack_relative_parts):
+        errors.append(f"{relative_path}: junk OS files are not allowed")
+        return errors
+
+    if any(part.startswith(".") for part in pack_relative_parts):
+        errors.append(f"{relative_path}: hidden files or directories are not allowed")
+        return errors
+
+    if not allow_executable_permissions and stat_result.st_mode & 0o111:
+        errors.append(f"{relative_path}: executable file permissions are not allowed")
+
+    suffix = path.suffix.lower()
+    if suffix in BLOCKED_EXTENSIONS:
+        errors.append(f"{relative_path}: blocked file extension `{suffix}`")
+
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        errors.append(f"{relative_path}: failed to read file ({exc})")
+        return errors
+
+    text = decode_utf8_text(raw)
+    if text is None:
+        if suffix not in ALLOWED_BINARY_EXTENSIONS:
+            allowed = ", ".join(sorted(ALLOWED_BINARY_EXTENSIONS))
+            errors.append(
+                f"{relative_path}: binary or non-UTF-8 files are not allowed unless the extension is one of: {allowed}"
+            )
+        return errors
+
+    errors.extend(scan_text_content(relative_path, text))
+    return errors
+
+
 def find_scan_errors(repo_root: Path, pack_dir: str) -> list[str]:
     errors: list[str] = []
     pack_path = repo_root / pack_dir
@@ -326,45 +449,13 @@ def find_scan_errors(repo_root: Path, pack_dir: str) -> list[str]:
         if path.is_dir():
             continue
 
-        relative_path = path.relative_to(repo_root).as_posix()
-        pack_relative_parts = path.relative_to(pack_path).parts
-        stat_result = path.lstat()
-
-        if path.is_symlink():
-            errors.append(f"{relative_path}: symlinks are not allowed")
-            continue
-
-        if any(part in IGNORED_FILENAMES for part in pack_relative_parts):
-            errors.append(f"{relative_path}: junk OS files are not allowed")
-            continue
-
-        if any(part.startswith(".") for part in pack_relative_parts):
-            errors.append(f"{relative_path}: hidden files or directories are not allowed")
-            continue
-
-        if stat_result.st_mode & 0o111:
-            errors.append(f"{relative_path}: executable file permissions are not allowed")
-
-        if path.suffix.lower() in BLOCKED_EXTENSIONS:
-            errors.append(f"{relative_path}: blocked executable file extension `{path.suffix.lower()}`")
-
-        try:
-            raw = path.read_bytes()
-        except OSError as exc:
-            errors.append(f"{relative_path}: failed to read file ({exc})")
-            continue
-
-        if b"\x00" in raw:
-            continue
-
-        try:
-            text = raw.decode("utf-8")
-        except UnicodeDecodeError:
-            continue
-
-        for label, pattern in BLOCKED_PATTERNS:
-            if pattern.search(text):
-                errors.append(f"{relative_path}: blocked pattern detected ({label})")
+        errors.extend(
+            scan_pack_file(
+                path,
+                display_root=repo_root,
+                pack_root=pack_path,
+            )
+        )
 
     return errors
 
