@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-09T22:16:43Z",
+  "generatedAt": "2026-03-10T01:12:11Z",
   "releaseTag": "pack-artifacts",
   "packs": [
     {
@@ -12,6 +12,16 @@
       "artifactUrl": "https://github.com/tigerokuma/context-bank-free-packs/releases/download/pack-artifacts/context-bank--sample-free-pack--968f2cf.zip",
       "sha256": "81429e7847a0459d4082691bfe9947e5bbb193e5e48a4842c8bef0513d8b0747",
       "sizeBytes": 2332
+    },
+    {
+      "creatorHandle": "tigerokuma",
+      "slug": "audio-transcription-merge-and-conquer",
+      "sourcePath": "packs/tigerokuma/audio-transcription-merge-and-conquer",
+      "sourceRef": "0d2b9f50b51bb3bfa4dcaebc7dc0ebcc4593709e",
+      "assetName": "tigerokuma--audio-transcription-merge-and-conquer--0d2b9f5.zip",
+      "artifactUrl": "https://github.com/tigerokuma/context-bank-free-packs/releases/download/pack-artifacts/tigerokuma--audio-transcription-merge-and-conquer--0d2b9f5.zip",
+      "sha256": "a04eea181dedf91e68d7bfa6212502beec4331991f9572b0ad1872d9d2356394",
+      "sizeBytes": 7393
     },
     {
       "creatorHandle": "tigerokuma",
