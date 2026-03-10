@@ -10,7 +10,7 @@
 - contributor は manual に pack を整えてもよいし、AI agent に submission 用の正規化を依頼しても構いません。
 - GitHub Actions は marketplace の本番 secret を使わずに untrusted PR を validation します。
 - `merge` が approval event です。
-- `merge` 後、GitHub Actions が pack-only ZIP を public な `pack-artifacts` release に publish し、`catalogs/pack-artifacts.json` を更新し、private app repo の sync workflow を自動実行します。
+- `merge` 後、GitHub Actions が pack-only ZIP を public な `pack-artifacts` release に publish し、`catalogs/pack-artifacts.json` 更新用の自動 PR を作成して自動 merge し、その後 private app repo の sync workflow を自動実行します。
 
 paid pack はこの repo の対象外です。MVP では `source.type = internal_repo` の free pack のみ対応します。
 
@@ -41,8 +41,9 @@ flowchart LR
 
     G --> H["publish-pack-artifacts.yml が pack-only ZIP を publish"]
     H --> I["GitHub Release: pack-artifacts"]
-    H --> J["catalogs/pack-artifacts.json を更新"]
-    J --> K["repository_dispatch で tigerokuma/context-bank の sync-free-packs.yml を起動"]
+    H --> J["catalogs/pack-artifacts.json 更新用の自動 PR を作成"]
+    J --> K["catalog PR を main に自動 merge"]
+    K --> L["repository_dispatch で tigerokuma/context-bank の sync-free-packs.yml を起動"]
 ```
 
 ## 投稿フロー
@@ -53,7 +54,8 @@ flowchart LR
 4. Pull Request を作成します。
 5. central repo 側の CI と maintainer review を待ちます。
 6. 承認されれば maintainer が merge します。
-7. merge 後、`publish-pack-artifacts.yml` が pack ZIP asset を publish または再利用し、`catalogs/pack-artifacts.json` を更新したうえで、成功時に downstream の `tigerokuma/context-bank` sync workflow を自動 dispatch します。
+7. merge 後、`publish-pack-artifacts.yml` が pack ZIP asset を publish または再利用し、`catalogs/pack-artifacts.json` 更新用の自動 PR を作成または更新します。
+8. その catalog PR が check 通過後に自動 merge され、downstream の `tigerokuma/context-bank` sync workflow を自動 dispatch します。
 
 ## Agent-First 投稿パス
 
@@ -89,6 +91,8 @@ manual で最終 directory layout を作らなくても、AI agent に submissio
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
+│       ├── auto-merge-catalog-refresh-pr.yml
+│       ├── dispatch-downstream-free-pack-sync.yml
 │       ├── submit-from-trusted-source-repo.yml
 │       ├── publish-pack-artifacts.yml
 │       └── validate-free-pack.yml
@@ -154,7 +158,11 @@ python3 skills/free-pack-submission-prep/scripts/prepare_free_pack_submission.py
 2. `manifest.json`、`SKILL.md`、変更ファイルを確認します。
 3. `pull_request` validation workflow が通っていることを確認します。
 4. 問題なければ merge します。squash merge でも構いません。
-5. merge 後、`publish-pack-artifacts.yml` が成功し、release asset と `catalogs/pack-artifacts.json` が更新され、downstream の `tigerokuma/context-bank` sync workflow が起動されたことを確認します。manual な downstream sync は fallback / recovery 用です。
+5. merge 後、`publish-pack-artifacts.yml` が成功し、catalog 更新用 PR を作成または更新したことを確認します。
+6. その catalog PR が check 通過後に自動 merge されたことを確認します。
+7. その merge により downstream の `tigerokuma/context-bank` sync workflow が起動されたことを確認します。manual な downstream sync は fallback / recovery 用です。
+
+この自動 merge フローは、`main` ruleset が生成された catalog PR に人間の approve を必須にしていない前提です。
 
 ## Advanced Maintainer Workflow
 
@@ -174,4 +182,4 @@ python3 skills/free-pack-submission-prep/scripts/prepare_free_pack_submission.py
 - public PR validation では marketplace の本番 secret を使いません。
 - この public repo から private app へ直接書き込みません。
 - `external_repo` registration flow は未対応です。
-- central repo での publish 成功後、downstream sync は自動で起動されます。manual な downstream sync は dispatch や downstream 実行の再試行が必要なときの fallback / recovery 手段です。
+- central repo での publish 成功後、catalog 更新用の自動 PR が作成され、その PR が自動 merge された後に downstream sync は自動で起動されます。manual な downstream sync は dispatch や downstream 実行の再試行が必要なときの fallback / recovery 手段です。

@@ -34,8 +34,11 @@ Issue-based intake remains a future fallback option, not the primary path here.
 5. Central repo CI runs `validate-free-pack.yml` on the untrusted PR.
 6. A maintainer reviews the PR diff and CI result, then merges if approved.
 7. After merge, the central repo publish workflow generates or reuses the
-   pack-only ZIP asset, refreshes `catalogs/pack-artifacts.json`, and
-   automatically dispatches the downstream private app repo sync workflow.
+   pack-only ZIP asset and opens or updates the automated
+   `catalogs/pack-artifacts.json` refresh PR.
+8. After that catalog PR passes validation, it is merged automatically.
+9. After the catalog PR merge, the downstream private app repo sync workflow
+   is dispatched automatically.
 
 ## Security Model
 
@@ -121,9 +124,11 @@ Post-merge publishing is handled inside the central repo:
 
 1. merge the central repo PR
 2. confirm `publish-pack-artifacts.yml` completed successfully
-3. confirm the `pack-artifacts` release asset and `catalogs/pack-artifacts.json`
-   entry were updated as expected
-4. confirm the successful publish triggered the downstream
+3. confirm the `pack-artifacts` release asset was updated and that the central
+   repo opened or updated the automated `catalogs/pack-artifacts.json` refresh
+   PR
+4. confirm that automated catalog PR merged after its checks passed
+5. confirm the successful catalog PR merge triggered the downstream
    `tigerokuma/context-bank` `sync-free-packs.yml` workflow automatically
 
 If publishing fails, the merged PR stays approved in GitHub, but the previous

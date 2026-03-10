@@ -1,0 +1,86 @@
+name: Auto-Merge Catalog Refresh PR
+
+on:
+  workflow_run:
+    workflows:
+      - Validate Free Pack
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge-catalog-refresh-pr:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.head_branch == 'automation/update-pack-artifact-catalog'
+      }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve catalog PR number
+        id: resolve-pr
+        env:
+          EVENT_PATH: ${{ github.event_path }}
+        run: |
+          set -euo pipefail
+          pr_number="$(python3 - <<'PY'
+          import json
+          import os
+
+          with open(os.environ["EVENT_PATH"], "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+
+          pull_requests = payload.get("workflow_run", {}).get("pull_requests", [])
+          if not pull_requests:
+              raise SystemExit("No pull request associated with workflow_run event")
+
+          number = pull_requests[0].get("number")
+          if not isinstance(number, int):
+              raise SystemExit("workflow_run pull request number missing")
+
+          print(number)
+          PY
+          )"
+          echo "pr-number=${pr_number}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify catalog-only PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.resolve-pr.outputs.pr-number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+
+          command = [
+              "gh",
+              "api",
+              f"repos/{os.environ['REPOSITORY']}/pulls/{os.environ['PR_NUMBER']}/files",
+              "--paginate",
+          ]
+          completed = subprocess.run(command, check=True, capture_output=True, text=True)
+          files = json.loads(completed.stdout)
+
+          expected_path = "catalogs/pack-artifacts.json"
+          changed = [entry.get("filename") for entry in files if isinstance(entry, dict)]
+          if changed != [expected_path]:
+              print(f"Unexpected changed files for catalog PR: {changed}", file=sys.stderr)
+              sys.exit(1)
+          PY
+
+      - name: Merge catalog refresh PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.resolve-pr.outputs.pr-number }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --squash --delete-branch

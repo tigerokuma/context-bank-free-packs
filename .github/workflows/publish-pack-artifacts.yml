@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   publish-pack-artifacts:
@@ -36,37 +37,16 @@ jobs:
             --repo-url "https://github.com/${{ github.repository }}" \
             --github-repository "${{ github.repository }}"
 
-      - name: Commit updated artifact catalog
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- catalogs/pack-artifacts.json; then
-            echo "No catalog changes to commit"
-            exit 0
-          fi
+      - name: Create or update catalog refresh PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: catalogs/pack-artifacts.json
+          branch: automation/update-pack-artifact-catalog
+          commit-message: "chore: update pack artifact catalog"
+          delete-branch: true
+          title: "chore: update pack artifact catalog"
+          body: |
+            This PR was generated automatically after publishing free-pack artifacts.
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add catalogs/pack-artifacts.json
-          git commit -m "chore: update pack artifact catalog"
-          git push origin "HEAD:${{ github.ref_name }}"
-
-      - name: Dispatch downstream free-pack sync
-        if: ${{ success() && github.event_name != 'pull_request' }}
-        env:
-          CONTEXT_BANK_REPOSITORY_DISPATCH_TOKEN: ${{ secrets.CONTEXT_BANK_REPOSITORY_DISPATCH_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          published_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-          payload="$(printf '{"event_type":"free-pack-artifacts-published","client_payload":{"repoUrl":"https://github.com/%s","releaseTag":"pack-artifacts","catalogPath":"catalogs/pack-artifacts.json","publishedAt":"%s","sourceRevision":"%s"}}' \
-            "${GITHUB_REPOSITORY}" \
-            "${published_at}" \
-            "${GITHUB_SHA}")"
-
-          curl --fail-with-body --silent --show-error \
-            --request POST \
-            --url "https://api.github.com/repos/tigerokuma/context-bank/dispatches" \
-            --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer ${CONTEXT_BANK_REPOSITORY_DISPATCH_TOKEN}" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            --data "${payload}"
+            - refreshes `catalogs/pack-artifacts.json`
+            - keeps `main` protected from direct workflow pushes

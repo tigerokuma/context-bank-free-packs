@@ -10,7 +10,7 @@ This repo is the central public repository for approved free packs in Context Ba
 - Contributors can either prepare the pack manually or ask an AI agent to do the normalization work first.
 - GitHub Actions validate untrusted PRs without marketplace production secrets.
 - Merge is the approval event.
-- After merge, GitHub Actions publish a pack-only ZIP to the public `pack-artifacts` release, refresh `catalogs/pack-artifacts.json`, and automatically trigger the private app repo sync workflow.
+- After merge, GitHub Actions publish a pack-only ZIP to the public `pack-artifacts` release, open and auto-merge an automated PR to refresh `catalogs/pack-artifacts.json`, and then trigger the private app repo sync workflow.
 
 Paid packs are out of scope here. MVP supports only free packs with `source.type = internal_repo`.
 
@@ -41,8 +41,9 @@ flowchart LR
 
     G --> H["publish-pack-artifacts.yml publishes pack-only ZIPs"]
     H --> I["GitHub Release: pack-artifacts"]
-    H --> J["catalogs/pack-artifacts.json refreshed"]
-    J --> K["repository_dispatch triggers tigerokuma/context-bank sync-free-packs.yml"]
+    H --> J["Automated PR refreshes catalogs/pack-artifacts.json"]
+    J --> K["Auto-merge catalog PR on main"]
+    K --> L["repository_dispatch triggers tigerokuma/context-bank sync-free-packs.yml"]
 ```
 
 ## Submission Flow
@@ -53,7 +54,8 @@ flowchart LR
 4. Open a pull request.
 5. Wait for central repo CI and maintainer review.
 6. If approved, the maintainer merges the PR.
-7. After merge, the `publish-pack-artifacts.yml` workflow publishes or reuses the pack ZIP asset, refreshes `catalogs/pack-artifacts.json`, and automatically dispatches the downstream `tigerokuma/context-bank` sync workflow after successful publish/catalog completion.
+7. After merge, the `publish-pack-artifacts.yml` workflow publishes or reuses the pack ZIP asset and opens or updates an automated PR for `catalogs/pack-artifacts.json`.
+8. After the catalog PR passes validation, it is merged automatically and the downstream `tigerokuma/context-bank` sync workflow is dispatched.
 
 ## Agent-First Submission Path
 
@@ -89,6 +91,8 @@ Important rules:
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
+│       ├── auto-merge-catalog-refresh-pr.yml
+│       ├── dispatch-downstream-free-pack-sync.yml
 │       ├── submit-from-trusted-source-repo.yml
 │       ├── publish-pack-artifacts.yml
 │       └── validate-free-pack.yml
@@ -154,7 +158,11 @@ python3 skills/free-pack-submission-prep/scripts/prepare_free_pack_submission.py
 2. Review `manifest.json`, `SKILL.md`, and the changed file tree.
 3. Confirm the `pull_request` validation workflow passed.
 4. Merge if approved. Squash merge is acceptable.
-5. After merge, confirm `publish-pack-artifacts.yml` succeeded, refreshed the release assets plus `catalogs/pack-artifacts.json`, and triggered the downstream `tigerokuma/context-bank` sync workflow. Manual downstream sync should be used only for fallback or recovery.
+5. After merge, confirm `publish-pack-artifacts.yml` succeeded and either updated or created the catalog refresh PR.
+6. Confirm the catalog refresh PR was auto-merged after its checks passed.
+7. Confirm the catalog PR merge triggered the downstream `tigerokuma/context-bank` sync workflow. Manual downstream sync should be used only for fallback or recovery.
+
+This auto-merge flow assumes the `main` ruleset does not require a human PR approval for the generated catalog PR.
 
 ## Advanced Maintainer Workflow
 
@@ -174,4 +182,4 @@ This is an advanced maintainer workflow, not the primary contributor path. Stand
 - No marketplace production secrets in public PR validation.
 - No direct write from this public repo into the private app.
 - No `external_repo` registration flow yet.
-- Automatic downstream sync now starts from the central repo after successful publish. Manual downstream sync remains fallback or recovery behavior if the dispatch or downstream run needs to be retried.
+- Automatic downstream sync now starts after the automated catalog-refresh PR is auto-merged into `main`. Manual downstream sync remains fallback or recovery behavior if the dispatch or downstream run needs to be retried.
