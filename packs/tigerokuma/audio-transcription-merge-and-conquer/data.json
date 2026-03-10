@@ -1,0 +1,35 @@
+{
+  "input": {
+    "acceptedFormats": [
+      "mp3"
+    ],
+    "preferredInputMode": "local_file_path"
+  },
+  "chunking": {
+    "targetSeconds": 75,
+    "minSeconds": 45,
+    "maxSeconds": 90,
+    "overlapSeconds": 2,
+    "preferSilenceAlignedCuts": true
+  },
+  "parallelism": {
+    "strategy": "one_chunk_per_worker",
+    "boundedConcurrency": true,
+    "retryLowConfidenceChunksOnly": true
+  },
+  "merge": {
+    "ordering": "absolute_start_time",
+    "dedupePriority": [
+      "timestamps",
+      "lexical_similarity",
+      "higher_confidence"
+    ],
+    "flagConflicts": true
+  },
+  "outputs": [
+    "transcript.md",
+    "segments.json",
+    "uncertain-spans.md",
+    "summary.md"
+  ]
+}
