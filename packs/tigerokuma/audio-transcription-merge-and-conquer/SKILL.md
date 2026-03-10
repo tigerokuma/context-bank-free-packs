@@ -19,11 +19,25 @@ description: "Context pack for agents that split MP3 audio into parallel transcr
 
 Use this pack when an agent receives one MP3 file and must finish transcription with low wall-clock time.
 
+This pack is designed for operational speed, not just transcription accuracy in isolation. Instead of sending one long recording through a single serial job, the agent should break the audio into controlled overlapping chunks, process them in parallel, and then merge the result with timestamp-aware deduplication. The goal is to minimize total elapsed time while keeping boundary errors reviewable.
+
 ## Goal
 
 - split audio into independent jobs without losing transcript continuity
 - run chunk transcription in parallel
 - merge overlap cleanly and surface uncertain spans for review
+
+## Best Fit
+
+- long meetings, interviews, podcasts, lectures, and voice notes
+- recordings where wall-clock speed matters more than a single monolithic run
+- pipelines that can execute multiple chunk jobs concurrently
+
+## Less Suitable Cases
+
+- audio that must remain fully local if the ASR backend is remote and unapproved
+- highly overlapping multi-speaker crosstalk without diarization support
+- recordings so short that chunking overhead exceeds the speed benefit
 
 ## Recommended Workflow
 
@@ -47,6 +61,15 @@ Use this pack when an agent receives one MP3 file and must finish transcription 
    - keep timestamps or segment markers
    - emit a short uncertainty report instead of guessing unheard words
 
+## Execution Checklist
+
+- confirm the input file exists and is readable
+- capture duration before deciding chunk count
+- keep a manifest of chunk index to absolute time range
+- store per-chunk raw output before merge cleanup
+- rerun only the chunks that fail or score low confidence
+- leave explicit markers for unresolved audio instead of silently dropping content
+
 ## Output Contract
 
 - a full transcript in reading order
@@ -60,6 +83,20 @@ Use this pack when an agent receives one MP3 file and must finish transcription 
 - mark unintelligible audio explicitly
 - keep the merge deterministic so reruns stay comparable
 - save intermediate chunk outputs until final QA passes
+
+## Merge Principles
+
+- treat overlap as a reconciliation zone, not as disposable text
+- prefer timestamps over fuzzy text matching when both are available
+- preserve repeated words if they are genuine speech rather than overlap duplication
+- if two chunks disagree materially, keep the stronger candidate and log the conflict
+
+## Failure Handling
+
+- if a chunk cannot be decoded, isolate and retry only that chunk
+- if the overlap cannot be resolved cleanly, keep both candidates in the review log
+- if the backend returns inconsistent named entities, queue a narrow repair pass
+- if runtime pressure is high, reduce chunk length before increasing retry breadth
 
 ## Safe Usage Notes
 
