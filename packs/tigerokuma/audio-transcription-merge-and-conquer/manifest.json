@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "slug": "audio-transcription-merge-and-conquer",
+    "creatorHandle": "tigerokuma",
+    "title": "Audio Transcription Merge and Conquer",
+    "summary": "Context pack for agents that split MP3 audio into parallel transcription jobs, then merge, dedupe, and polish the final transcript quickly.",
+    "category": "automation",
+    "tags": [
+      "audio-transcription",
+      "speech-to-text",
+      "merge-and-conquer",
+      "parallel-processing",
+      "mp3",
+      "agent",
+      "free-pack"
+    ],
+    "priceType": "free"
+  },
+  "source": {
+    "type": "internal_repo",
+    "repoUrl": "https://github.com/tigerokuma/context-bank-free-packs",
+    "path": "packs/tigerokuma/audio-transcription-merge-and-conquer"
+  },
+  "support": {
+    "homepage": "https://github.com/tigerokuma/context-bank-free-packs/tree/main/packs/tigerokuma/audio-transcription-merge-and-conquer",
+    "issues": "https://github.com/tigerokuma/context-bank-free-packs/issues"
+  }
+}
