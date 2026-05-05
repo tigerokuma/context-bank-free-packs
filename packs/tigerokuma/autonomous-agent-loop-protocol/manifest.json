@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "slug": "autonomous-agent-loop-protocol",
+    "creatorHandle": "tigerokuma",
+    "title": "Autonomous Agent Loop Protocol",
+    "summary": "Issue-driven autonomous loop for multi-repo workspaces: pick the highest-priority unblocked issue, run planner/generator/evaluator, open one PR, mark pending-review, unblock dependents, repeat.",
+    "category": "developer-tools",
+    "tags": [
+      "agent-loop",
+      "autonomous-agent",
+      "claude-code",
+      "planner-generator-evaluator",
+      "issue-driven",
+      "multi-repo",
+      "sub-agents",
+      "free-pack"
+    ],
+    "priceType": "free"
+  },
+  "source": {
+    "type": "internal_repo",
+    "repoUrl": "https://github.com/tigerokuma/context-bank-free-packs",
+    "path": "packs/tigerokuma/autonomous-agent-loop-protocol"
+  },
+  "support": {
+    "homepage": "https://github.com/tigerokuma/context-bank-free-packs/tree/main/packs/tigerokuma/autonomous-agent-loop-protocol",
+    "issues": "https://github.com/tigerokuma/context-bank-free-packs/issues"
+  }
+}
