@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-10T01:12:11Z",
+  "generatedAt": "2026-05-05T07:18:43Z",
   "releaseTag": "pack-artifacts",
   "packs": [
     {
@@ -22,6 +22,16 @@
       "artifactUrl": "https://github.com/tigerokuma/context-bank-free-packs/releases/download/pack-artifacts/tigerokuma--audio-transcription-merge-and-conquer--0d2b9f5.zip",
       "sha256": "a04eea181dedf91e68d7bfa6212502beec4331991f9572b0ad1872d9d2356394",
       "sizeBytes": 7393
+    },
+    {
+      "creatorHandle": "tigerokuma",
+      "slug": "autonomous-agent-loop-protocol",
+      "sourcePath": "packs/tigerokuma/autonomous-agent-loop-protocol",
+      "sourceRef": "f717522986fd0169dff302777c34729245171e61",
+      "assetName": "tigerokuma--autonomous-agent-loop-protocol--f717522.zip",
+      "artifactUrl": "https://github.com/tigerokuma/context-bank-free-packs/releases/download/pack-artifacts/tigerokuma--autonomous-agent-loop-protocol--f717522.zip",
+      "sha256": "09742ae110bc3fe44dd715f7b82776d9319e23a9678588ecdb7ca25b2785481a",
+      "sizeBytes": 8623
     },
     {
       "creatorHandle": "tigerokuma",
